@@ -1,13 +1,17 @@
 package acl
 
+// #ifdef __linux__
+//  #cgo LDFLAGS: -lacl
+// #elif defined __FreeBSD__
+//
+// #elif defined __APPLE__
+//  #cgo LDFLAGS: -lacl
+//  #include <sys/types.h>
+// #endif
 // #include <sys/acl.h>
-// #include <stdio.h>
 import "C"
 
 import (
-    "fmt"
-    "os"
-    "unsafe"
 )
 
 /*
@@ -175,18 +179,4 @@ func to_text(acl acl_t, len_p *ssize_t) []byte {
 
 func valid(acl acl_t) int {
     return 0
-}
-
-func demo () {
-    filename := os.Args[1]
-
-    acl := C.acl_get_file(C.CString(filename), C.ACL_TYPE_ACCESS)
-    /* if (acl == C.NULL) { */
-    if (acl == nil) {
-        fmt.Sprintf("Failed to obtain ACL from %s\n", filename)
-        /* err := fmt.Sprintf("Failed to obtain ACL from %s\n", filename) */
-        /* C.fprintf(C.stderr, C.CString(err)) */
-    }
-
-    C.acl_free(unsafe.Pointer(acl))
 }
