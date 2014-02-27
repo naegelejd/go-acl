@@ -11,13 +11,6 @@ import (
     "unsafe"
 )
 
-/*
-* From FreeBSD acl.h:
-* 254 Entries makes the acl struct exactly one 4KB page in size.
-* NFSv4 halves this number (just for reference)
-*/
-const MAX_ENTRIES = 254
-
 const (
     TYPE_ACCESS_OLD Type = iota
     TYPE_DEFAULT_OLD
@@ -63,28 +56,15 @@ type ACL struct {
     a C.acl_t
 }
 
-/* type entry_t struct { */
-/*     ae_tag tag_t; */
-/*     ae_id uid_t; */
-/*     ae_perm perm_t; */
-/*     /1* ae_entry_type entry_type_t; *1/ */
-/*     /1* ae_flags flag_t; *1/ */
-/* } */
-
-/* type acl struct { */
-/*     mxcnt uint */
-/*     cnt uint */
-/*     spare [4]int */
-/*     entry [MAX_ENTRIES]entry_t */
-/* } */
-
-
 // Unsupported on Mac OS X
-/* func delete_def_file(path_p *constchar) int { */
-/*     acl_delete_def_file */
-/*     return 0 */
-/* } */
-
+func DeleteDefFile(path string) error {
+    cs := C.CString(path)
+    i, err := C.acl_delete_def_file(cs)
+    if i < 0 {
+        return err
+    }
+    return nil
+}
 
 // Unsupported on Mac OS X?
 func (acl ACL) CalcMask() error {
@@ -209,7 +189,7 @@ func FromText(buffer string) (ACL, error) {
     return acl, nil
 }
 
-func GetFd(fd int) (ACL, error) {
+func GetFd(fd uintptr) (ACL, error) {
     var acl ACL
     cacl, err := C.acl_get_fd(C.int(fd))
     if cacl == nil {

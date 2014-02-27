@@ -3,6 +3,7 @@ package main
 import (
     "github.com/naegelejd/go-acl/acls"
     "log"
+    "fmt"
     "os"
 )
 
@@ -11,20 +12,21 @@ func main() {
 
     acl, err := acls.GetFile(filename, acls.TYPE_ACCESS)
     if err != nil {
-        log.Fatal("Failed to get ACL from ", filename)
+        log.Print("Failed to get ACL from ", filename)
+        log.Fatal(err)
     }
 
-    size := acl.Size()
     str, err := acl.ToText()
     if err != nil {
-        log.Fatal("Failed to get string representation of ACL")
+        log.Print("Failed to get string representation of ACL")
+        log.Fatal(err)
     }
 
-    log.Print("ACL repr: ", str)
-    log.Print("ACL size: ", size)
+    fmt.Print("ACL repr:\n", str)
 
     err = acls.Free(acl)
     if err != nil {
-        log.Fatal("Failed to free ACL")
+        log.Print("Failed to free ACL")
+        log.Fatal(err)
     }
 }
