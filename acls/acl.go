@@ -79,16 +79,6 @@ type ACL struct {
 /* } */
 
 
-// Only supported on Mac OS X?
-/* func copy_ext(buf_p *void, acl acl_t, size ssize_t) ssize_t { */
-/*     return 0 */
-/* } */
-
-// Only supported on Mac OS X?
-/* func copy_int(buf_p *constvoid) acl_t { */
-/*     return acl_t{}; */
-/* } */
-
 // Unsupported on Mac OS X
 /* func delete_def_file(path_p *constchar) int { */
 /*     acl_delete_def_file */
@@ -96,7 +86,7 @@ type ACL struct {
 /* } */
 
 
-// Unsupported on Mac OS X
+// Unsupported on Mac OS X?
 func (acl ACL) CalcMask() error {
     a := C.acl_t(acl.a)
     i, err := C.acl_calc_mask(&a)
@@ -116,11 +106,6 @@ func (acl ACL) GetEntry(eid int) (Entry, error) {
     }
     entry.e= e
     return entry, nil
-}
-
-func (acl ACL) Size() uint64 {
-    a := C.acl_t(acl.a)
-    return uint64(C.acl_size(a))
 }
 
 func (acl ACL) ToText() (string, error) {
