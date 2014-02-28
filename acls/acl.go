@@ -12,33 +12,26 @@ import (
 )
 
 const (
-    TYPE_ACCESS_OLD Type = iota
-    TYPE_DEFAULT_OLD
-    TYPE_ACCESS
-    TYPE_DEFAULT
+    TYPE_ACCESS     Type    = C.ACL_TYPE_ACCESS
+    TYPE_DEFAULT    Type    = C.ACL_TYPE_DEFAULT
     TYPE_NFS4
+
+    UNDEFINED_TAG   Tag = C.ACL_UNDEFINED_TAG
+    USER_OBJ        Tag = C.ACL_USER_OBJ
+    USER            Tag = C.ACL_USER
+    GROUP_OBJ       Tag = C.ACL_GROUP_OBJ
+    GROUP           Tag = C.ACL_GROUP
+    MASK            Tag = C.ACL_MASK
+    OTHER           Tag = C.ACL_OTHER
+
+    EXECUTE Perm = C.ACL_EXECUTE
+    WRITE   Perm = C.ACL_WRITE
+    READ    Perm = C.ACL_READ
 )
 
-const (
-    USER_OBJ Tag = iota
-    USER
-    GROUP_OBJ
-    GROUP
-    MASK
-    OTHER
-    OTHER_OBJ
-    EVERYONE
-)
-
-const (
-    NONE Perm = 0
-    EXECUTE Perm = 1 << iota
-    WRITE
-    READ
-)
-
-/* type uid_t uint32 // FIXME: where is this defined? */
-/* type gid_t uint32 // FIXME: where is this defined? */
+// UID/GID values are returned as ints in package "os"
+type Uid int
+type Gid int
 
 type Tag int
 type Type int
