@@ -14,15 +14,12 @@ func TestGetFile(t *testing.T) {
 	}
 	f.Close()
 
-	acl, err := GetFile(filename, TYPE_ACCESS)
+	acl, err := GetFileAccess(filename)
 	if err != nil {
 		t.Fatal("Failed to get ACL from file: ", err)
 	}
 
-	err = acl.Free()
-	if err != nil {
-		t.Fatal("Failed to Free ACL: ", err)
-	}
+	acl.Free()
 
 	err = os.Remove(filename)
 	if err != nil {
@@ -44,10 +41,7 @@ func TestGetFd(t *testing.T) {
 		t.Fatal("Failed to get ACL from file: ", err)
 	}
 
-	err = acl.Free()
-	if err != nil {
-		t.Fatal("Failed to Free ACL: ", err)
-	}
+	acl.Free()
 
 	err = os.Remove(filename)
 	if err != nil {

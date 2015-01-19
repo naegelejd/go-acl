@@ -32,17 +32,10 @@ func main() {
 }
 
 func getfacl(p string, recursive, header bool) error {
-	a, err := acl.GetFile(p, acl.TYPE_ACCESS)
+	a, err := acl.GetFileAccess(p)
 	if err != nil {
 		return fmt.Errorf("Failed to get ACL from %s (%s)", p, err)
 	}
-
-	str, err := a.ToText()
-	if err != nil {
-		return fmt.Errorf("Failed to get string representation of ACL (%s)", err)
-	}
-
-	a.Free()
 
 	uid, gid, err := os2.Owner(p)
 	if err != nil {
@@ -60,7 +53,10 @@ func getfacl(p string, recursive, header bool) error {
 	if header {
 		fmt.Printf("# file: %s\n# user: %s\n# group: %s\n", p, user.Username, group.Name)
 	}
-	fmt.Println(str)
+	fmt.Println(a)
+
+	// Free ACL before recursing
+	a.Free()
 
 	if recursive {
 		if err := recurse(p, header); err != nil {

@@ -125,47 +125,39 @@ func main() {
 		flag.Usage()
 	}
 
-	var f ACLSetter
-	var a acl.ACL
-	var err error
+	var g func(*acl.ACL) ACLSetter
+	var a *acl.ACL
 
 	if *delall {
-		a, err = acl.Init(1)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer a.Free()
-		f = deleteAll(a)
+		a = acl.New()
+		g = deleteAll
 	} else if *deldef {
-		a, err = acl.Init(1)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer a.Free()
-		f = deleteDefault(a)
+		a = acl.New()
+		g = deleteDefault
 	} else {
 		var source string
 		switch {
 		case len(*set) > 0:
 			source = *set
-			f = setACL(a)
+			g = setACL
 		case len(*mod) > 0:
 			source = *mod
-			f = modACL(a)
+			g = modACL
 		case len(*del) > 0:
 			source = *del
-			f = delACL(a)
+			g = delACL
+		default:
+			log.Fatal("Invalid mode. Contact author")
 		}
-
-		a, err = acl.FromText(source)
+		var err error
+		a, err = acl.Parse(source)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if f == nil {
-		log.Fatal("Invalid applier function")
-	}
+	defer a.Free()
+	f := g(a)
 
 	for i := 0; i < flag.NArg(); i++ {
 		p := flag.Arg(i)
@@ -185,7 +177,7 @@ func countModes(modes ...bool) int {
 	return count
 }
 
-func calculateMask(a acl.ACL) error {
+func calculateMask(a *acl.ACL) error {
 	if calcMask {
 		if err := a.CalcMask(); err != nil {
 			return err
@@ -194,84 +186,106 @@ func calculateMask(a acl.ACL) error {
 	return nil
 }
 
-func setACL(a acl.ACL) ACLSetter {
+func setACL(a *acl.ACL) ACLSetter {
 	return func(p string) error {
 		var err error
-		calculateMask(a)
+		if err = calculateMask(a); err != nil {
+			return err
+		}
 		if applyDefault {
-			err = a.SetFile(p, acl.TYPE_DEFAULT)
+			err = a.SetFileDefault(p)
 		} else {
-			err = a.SetFile(p, acl.TYPE_ACCESS)
+			log.Printf("Setting %s on %s\n", a, p)
+			err = a.SetFileAccess(p)
 		}
 		return err
 	}
 }
 
-func modACL(a acl.ACL) ACLSetter {
+func modACL(a *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var x acl.ACL
+		var x *acl.ACL
 		var err error
+
 		if applyDefault {
-			x, err = acl.GetFile(p, acl.TYPE_DEFAULT)
+			x, err = acl.GetFileDefault(p)
 		} else {
-			x, err = acl.GetFile(p, acl.TYPE_ACCESS)
+			x, err = acl.GetFileAccess(p)
 		}
 		if err != nil {
 			return err
 		}
-		// TODO: modify existing ACL with new ACL
 
-		calculateMask(x)
+		// copy each entry to existing ACL
+		for e := a.FirstEntry(); e != nil; e = a.NextEntry() {
+			if err := x.AddEntry(e); err != nil {
+				log.Printf("Error copying entry (%s)\n", err)
+			}
+		}
+
+		if err = calculateMask(x); err != nil {
+			return err
+		}
 		if applyDefault {
-			err = x.SetFile(p, acl.TYPE_DEFAULT)
+			err = x.SetFileDefault(p)
 		} else {
-			err = x.SetFile(p, acl.TYPE_ACCESS)
+			err = x.SetFileAccess(p)
 		}
 		return err
 	}
 }
 
-func delACL(a acl.ACL) ACLSetter {
+func delACL(a *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var x acl.ACL
+		var x *acl.ACL
 		var err error
+
 		if applyDefault {
-			x, err = acl.GetFile(p, acl.TYPE_DEFAULT)
+			x, err = acl.GetFileDefault(p)
 		} else {
-			x, err = acl.GetFile(p, acl.TYPE_ACCESS)
+			x, err = acl.GetFileAccess(p)
 		}
 		if err != nil {
 			return err
 		}
+
 		// TODO: remove existing ACL matching specified ACL
 
-		calculateMask(x)
+		if err = calculateMask(x); err != nil {
+			return err
+		}
 		if applyDefault {
-			err = x.SetFile(p, acl.TYPE_DEFAULT)
+			err = x.SetFileDefault(p)
 		} else {
-			err = x.SetFile(p, acl.TYPE_ACCESS)
+			err = x.SetFileAccess(p)
 		}
 		return err
 	}
 }
 
-func deleteAll(a acl.ACL) ACLSetter {
+func deleteAll(a *acl.ACL) ACLSetter {
 	return func(p string) error {
-		calculateMask(a)
-		if err := a.SetFile(p, acl.TYPE_ACCESS); err != nil {
+		var err error
+		if err = calculateMask(a); err != nil {
 			return err
 		}
-		if err := a.SetFile(p, acl.TYPE_DEFAULT); err != nil {
+		if err = a.SetFileAccess(p); err != nil {
+			return err
+		}
+		if err = a.SetFileDefault(p); err != nil {
 			return err
 		}
 		return nil
 	}
 }
 
-func deleteDefault(a acl.ACL) ACLSetter {
+func deleteDefault(a *acl.ACL) ACLSetter {
 	return func(p string) error {
-		calculateMask(a)
-		if err := a.SetFile(p, acl.TYPE_DEFAULT); err != nil {
+		var err error
+		if err = calculateMask(a); err != nil {
+			return err
+		}
+		if err = a.SetFileDefault(p); err != nil {
 			return err
 		}
 		return nil
@@ -299,7 +313,10 @@ func apply(f ACLSetter, p string) error {
 		return nil
 	}
 
-	f(p)
+	// do something to the path
+	if err := f(p); err != nil {
+		return err
+	}
 
 	fi, err := os.Stat(p)
 	if err != nil {
