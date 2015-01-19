@@ -27,7 +27,7 @@ func main() {
 
 	fmt.Print("ACL repr:\n", str)
 
-	if err = acl.Free(a); err != nil {
+	if err = a.Free(); err != nil {
 		log.Fatalf("Failed to free ACL (%s)", err)
 	}
 }

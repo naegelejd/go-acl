@@ -161,7 +161,7 @@ func (acl ACL) SetFile(path string, tp Type) error {
 }
 
 // Free releases the memory used by the ACL.
-func Free(acl ACL) error {
+func (acl ACL) Free() error {
 	a := unsafe.Pointer(C.acl_t(acl.a))
 	i, err := C.acl_free(a)
 	if i < 0 {

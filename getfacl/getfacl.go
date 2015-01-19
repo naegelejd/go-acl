@@ -42,6 +42,8 @@ func getfacl(p string, recursive, header bool) error {
 		return fmt.Errorf("Failed to get string representation of ACL (%s)", err)
 	}
 
+	a.Free()
+
 	uid, gid, err := os2.Owner(p)
 	if err != nil {
 		return fmt.Errorf("Failed to lookup owner and group (%s)", err)

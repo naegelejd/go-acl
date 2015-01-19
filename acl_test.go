@@ -19,7 +19,7 @@ func TestGetFile(t *testing.T) {
 		t.Fatal("Failed to get ACL from file: ", err)
 	}
 
-	err = Free(acl)
+	err = acl.Free()
 	if err != nil {
 		t.Fatal("Failed to Free ACL: ", err)
 	}
@@ -44,7 +44,7 @@ func TestGetFd(t *testing.T) {
 		t.Fatal("Failed to get ACL from file: ", err)
 	}
 
-	err = Free(acl)
+	err = acl.Free()
 	if err != nil {
 		t.Fatal("Failed to Free ACL: ", err)
 	}
