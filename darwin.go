@@ -1,4 +1,4 @@
-package acls
+package acl
 
 // #include <sys/types.h>
 // #include <sys/acl.h>

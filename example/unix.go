@@ -15,19 +15,19 @@ func main() {
 	}
 	filename := flag.Arg(0)
 
-	acl, err := acls.GetFile(filename, acls.TYPE_ACCESS)
+	a, err := acl.GetFile(filename, acl.TYPE_ACCESS)
 	if err != nil {
 		log.Fatalf("Failed to get ACL from %s (%s)", filename, err)
 	}
 
-	str, err := acl.ToText()
+	str, err := a.ToText()
 	if err != nil {
 		log.Fatalf("Failed to get string representation of ACL (%s)", err)
 	}
 
 	fmt.Print("ACL repr:\n", str)
 
-	if err = acls.Free(acl); err != nil {
+	if err = acl.Free(a); err != nil {
 		log.Fatalf("Failed to free ACL (%s)", err)
 	}
 }

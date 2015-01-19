@@ -10,7 +10,7 @@ import (
 func main() {
 	filename := os.Args[1]
 
-	acl, err := acls.GetFile(filename, acls.TYPE_ACCESS)
+	acl, err := acl.GetFile(filename, acl.TYPE_ACCESS)
 	if err != nil {
 		log.Fatal("Failed to get ACL from ", filename)
 	}
@@ -24,7 +24,7 @@ func main() {
 	fmt.Print("ACL repr:\n", str)
 	fmt.Print("ACL size: ", size)
 
-	err = acls.Free(acl)
+	err = acl.Free(acl)
 	if err != nil {
 		log.Fatal("Failed to free ACL")
 	}

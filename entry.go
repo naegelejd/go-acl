@@ -1,4 +1,4 @@
-package acls
+package acl
 
 // #ifdef __APPLE__
 //  #include <sys/types.h>
@@ -7,6 +7,12 @@ package acls
 // #cgo linux LDFLAGS: -lacl
 import "C"
 
+// Entry is an entry in an ACL.
+type Entry struct {
+	e C.acl_entry_t
+}
+
+// SetPermset sets the permissions for an ACL Entry.
 func (entry Entry) SetPermset(pset Permset) error {
 	e := C.acl_entry_t(entry.e)
 	p := C.acl_permset_t(pset.p)
@@ -17,6 +23,7 @@ func (entry Entry) SetPermset(pset Permset) error {
 	return nil
 }
 
+// Copy copies an Entry.
 func (entry Entry) Copy() (Entry, error) {
 	csrc := C.acl_entry_t(entry.e)
 	var dst Entry
@@ -37,6 +44,7 @@ func (entry Entry) Copy() (Entry, error) {
 // 	return nil
 // }
 
+// GetPermset returns the permission for an Entry.
 func (entry Entry) GetPermset() (Permset, error) {
 	e := C.acl_entry_t(entry.e)
 	var pset Permset
@@ -48,6 +56,7 @@ func (entry Entry) GetPermset() (Permset, error) {
 	return pset, nil
 }
 
+// GetTagType returns the Tag for an Entry.
 func (entry Entry) GetTagType() (Tag, error) {
 	e := C.acl_entry_t(entry.e)
 	var tag Tag
@@ -59,6 +68,7 @@ func (entry Entry) GetTagType() (Tag, error) {
 	return tag, nil
 }
 
+// SetTagType sets the Tag for an Entry.
 func (entry Entry) SetTagType(t Tag) error {
 	e := C.acl_entry_t(entry.e)
 	i, err := C.acl_set_tag_type(e, C.acl_tag_t(t))
