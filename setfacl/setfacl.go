@@ -81,6 +81,8 @@ const (
 type ACLSetter func(p string) error
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	set := flag.String("s", "", "set ACL(s) of file(s), replacing the current ACL")
 	mod := flag.String("m", "", "modify current ACL(s) of file(s)")
 	del := flag.String("x", "", "remove entries from ACL(s) of file(s)")
@@ -250,6 +252,33 @@ func delACL(a *acl.ACL) ACLSetter {
 		}
 
 		// TODO: remove existing ACL matching specified ACL
+		// for each entry in a, for each entry in x, if tag and qualifier match, remove from x
+		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
+			delTag, err := delEntry.GetTag()
+			if err != nil {
+				continue
+				return err
+			}
+			delQual, err := delEntry.GetQualifier()
+			if err != nil {
+				continue
+			}
+			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
+				exTag, err := exEntry.GetTag()
+				if err != nil {
+					continue
+				}
+				exQual, err := exEntry.GetQualifier()
+				if err != nil {
+					continue
+				}
+				if delTag == exTag && delQual == exQual {
+					if err := x.DeleteEntry(delEntry); err != nil {
+						return err
+					}
+				}
+			}
+		}
 
 		if err = calculateMask(x); err != nil {
 			return err

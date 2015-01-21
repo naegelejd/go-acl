@@ -10,7 +10,21 @@ package acl
 import "C"
 
 import (
+	"fmt"
+	"os"
 	"unsafe"
+)
+
+const (
+	otherExec  = 1 << iota
+	otherWrite = 1 << iota
+	otherRead  = 1 << iota
+	groupExec  = 1 << iota
+	groupWrite = 1 << iota
+	groupRead  = 1 << iota
+	userExec   = 1 << iota
+	userWrite  = 1 << iota
+	userRead   = 1 << iota
 )
 
 // UID/GID values are returned as ints in package "os".
@@ -28,29 +42,30 @@ type ACL struct {
 // DeleteDefaultACL removes the default ACL from the specified path.
 // Unsupported on Mac OS X.
 func DeleteDefaultACL(path string) error {
-	rv, err := C.acl_delete_def_file(C.CString(path))
+	rv, _ := C.acl_delete_def_file(C.CString(path))
 	if rv < 0 {
-		return err
+		return fmt.Errorf("unable to delete default ACL from file")
 	}
 	return nil
 }
 
 // Unsupported on Mac OS X?
 func (acl *ACL) CalcMask() error {
-	rv, err := C.acl_calc_mask(&acl.a)
+	rv, _ := C.acl_calc_mask(&acl.a)
 	if rv < 0 {
-		return err
+		return fmt.Errorf("unable to calculate mask")
 	}
 	return nil
 }
 
 // String returns the string representation of the ACL.
 func (acl *ACL) String() string {
-	s, _ := C.acl_to_text(acl.a, nil)
-	if s == nil {
+	cs, _ := C.acl_to_text(acl.a, nil)
+	if cs == nil {
 		return ""
 	}
-	return C.GoString(s)
+	defer C.acl_free(unsafe.Pointer(cs))
+	return C.GoString(cs)
 }
 
 // Valid checks if the ACL is valid.
@@ -62,35 +77,43 @@ func (acl *ACL) Valid() bool {
 	return true
 }
 
-// AddEntry adds a new Entry to the ACL.
-func (acl *ACL) AddEntry(entry *Entry) error {
-	a := C.acl_t(acl.a)
+// CreateEntry creates a new, empty Entry in the ACL.
+func (acl *ACL) CreateEntry() (*Entry, error) {
 	var e C.acl_entry_t
-	rv, err := C.acl_create_entry(&a, &e)
+	rv, _ := C.acl_create_entry(&acl.a, &e)
 	if rv < 0 {
+		return nil, fmt.Errorf("unable to create entry")
+	}
+	return &Entry{e}, nil
+}
+
+// AddEntry adds an Entry to the ACL.
+func (acl *ACL) AddEntry(entry *Entry) error {
+	newEntry, err := acl.CreateEntry()
+	if err != nil {
 		return err
 	}
-	rv, err = C.acl_copy_entry(e, entry.e)
+	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
 	if rv < 0 {
-		return err
+		return fmt.Errorf("unable to copy entry while adding new entry")
 	}
 	return nil
 }
 
 // DeleteEntry removes a specific Entry from the ACL.
 func (acl *ACL) DeleteEntry(entry *Entry) error {
-	rv, err := C.acl_delete_entry(acl.a, entry.e)
+	rv, _ := C.acl_delete_entry(acl.a, entry.e)
 	if rv < 0 {
-		return err
+		return fmt.Errorf("unable to delete entry")
 	}
 	return nil
 }
 
 // Dup makes a copy of the ACL.
 func (acl *ACL) Dup() (*ACL, error) {
-	cdup, err := C.acl_dup(acl.a)
+	cdup, _ := C.acl_dup(acl.a)
 	if cdup == nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to dup ACL")
 	}
 	return &ACL{cdup}, nil
 }
@@ -129,58 +152,93 @@ func (acl *ACL) NextEntry() *Entry {
 	return &Entry{e}
 }
 
-func (acl *ACL) addDefaults() error {
-	var u, g, o Entry
-	var rv C.int
-	var err error
+func (acl *ACL) addBaseEntries(path string) error {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	mode := fi.Mode().Perm()
+	var r, w, e bool
 
-	rv, err = C.acl_create_entry(&acl.a, &u.e)
-	if rv < 0 {
-		return err
-	}
-	rv, _ = C.acl_create_entry(&acl.a, &g.e)
-	if rv < 0 {
-		return err
-	}
-	rv, _ = C.acl_create_entry(&acl.a, &o.e)
-	if rv < 0 {
+	// Set USER_OBJ entry
+	r = mode&userRead == userRead
+	w = mode&userWrite == userWrite
+	e = mode&userExec == userExec
+	if err := acl.addBaseEntryFromMode(TagUserObj, r, w, e); err != nil {
 		return err
 	}
 
-	u.SetTagType(USER)
-	g.SetTagType(GROUP)
-	o.SetTagType(OTHER)
+	// Set GROUP_OBJ entry
+	r = mode&groupRead == groupRead
+	w = mode&groupWrite == groupWrite
+	e = mode&groupExec == groupExec
+	if err := acl.addBaseEntryFromMode(TagGroupObj, r, w, e); err != nil {
+		return err
+	}
 
-	var rw, r Permset
-	rw.AddPerm(READ)
-	rw.AddPerm(WRITE)
-	r.AddPerm(READ)
-	u.SetPermset(rw)
-	g.SetPermset(r)
-	o.SetPermset(r)
+	// Set OTHER entry
+	r = mode&otherRead == otherRead
+	w = mode&otherWrite == otherWrite
+	e = mode&otherExec == otherExec
+	if err := acl.addBaseEntryFromMode(TagOther, r, w, e); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-// SetFd applies the ACL to a file descriptor.
-func (acl *ACL) SetFd(fd int) error {
-	if err := acl.addDefaults(); err != nil {
+func (acl *ACL) addBaseEntryFromMode(tag Tag, read, write, execute bool) error {
+	e, err := acl.CreateEntry()
+	if err != nil {
 		return err
 	}
-	rv, err := C.acl_set_fd(C.int(fd), acl.a)
-	if rv < 0 {
+	if err = e.SetTag(tag); err != nil {
 		return err
+	}
+	p, err := e.GetPermset()
+	if err != nil {
+		return err
+	}
+	if err := p.addPermsFromMode(read, write, execute); err != nil {
+		return err
+	}
+	fmt.Printf("perm: %s\n", p)
+	return nil
+}
+
+func (p *Permset) addPermsFromMode(read, write, execute bool) error {
+	if read {
+		if err := p.AddPerm(PermRead); err != nil {
+			return err
+		}
+	}
+	if write {
+		if err := p.AddPerm(PermWrite); err != nil {
+			return err
+		}
+	}
+	if execute {
+		if err := p.AddPerm(PermExecute); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
-	if err := acl.addDefaults(); err != nil {
-		return err
+	if !acl.Valid() {
+		if err := acl.addBaseEntries(path); err != nil {
+			return err
+		}
+		if !acl.Valid() {
+			return fmt.Errorf("Invalid ACL: %s", acl)
+		}
 	}
-	rv, err := C.acl_set_file(C.CString(path), tp, acl.a)
+
+	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
 	if rv < 0 {
-		return err
+		fmt.Println(acl)
+		return fmt.Errorf("unable to apply ACL to file")
 	}
 	return nil
 }
@@ -203,26 +261,17 @@ func (acl *ACL) Free() {
 // Parse constructs and ACL from a string representation.
 func Parse(s string) (*ACL, error) {
 	cs := C.CString(s)
-	cacl, err := C.acl_from_text(cs)
+	cacl, _ := C.acl_from_text(cs)
 	if cacl == nil {
-		return nil, err
-	}
-	return &ACL{cacl}, nil
-}
-
-// GetFd returns the ACL associated with the given file descriptor.
-func GetFd(fd uintptr) (*ACL, error) {
-	cacl, err := C.acl_get_fd(C.int(fd))
-	if cacl == nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse ACL")
 	}
 	return &ACL{cacl}, nil
 }
 
 func getFile(path string, tp C.acl_type_t) (*ACL, error) {
-	cacl, err := C.acl_get_file(C.CString(path), tp)
+	cacl, _ := C.acl_get_file(C.CString(path), tp)
 	if cacl == nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get ACL from file")
 	}
 	return &ACL{cacl}, nil
 }
