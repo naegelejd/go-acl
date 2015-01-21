@@ -13,12 +13,6 @@ import (
 
 const (
 	TagUndefined Tag = C.ACL_UNDEFINED_TAG
-	TagUserObj   Tag = C.ACL_USER_OBJ
-	TagUser      Tag = C.ACL_USER
-	TagGroupObj  Tag = C.ACL_GROUP_OBJ
-	TagGroup     Tag = C.ACL_GROUP
-	TagMask      Tag = C.ACL_MASK
-	TagOther     Tag = C.ACL_OTHER
 )
 
 // Entry is an entry in an ACL.

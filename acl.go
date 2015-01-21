@@ -11,7 +11,6 @@ import "C"
 
 import (
 	"fmt"
-	"os"
 	"unsafe"
 )
 
@@ -152,79 +151,6 @@ func (acl *ACL) NextEntry() *Entry {
 	return &Entry{e}
 }
 
-func (acl *ACL) addBaseEntries(path string) error {
-	fi, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-	mode := fi.Mode().Perm()
-	var r, w, e bool
-
-	// Set USER_OBJ entry
-	r = mode&userRead == userRead
-	w = mode&userWrite == userWrite
-	e = mode&userExec == userExec
-	if err := acl.addBaseEntryFromMode(TagUserObj, r, w, e); err != nil {
-		return err
-	}
-
-	// Set GROUP_OBJ entry
-	r = mode&groupRead == groupRead
-	w = mode&groupWrite == groupWrite
-	e = mode&groupExec == groupExec
-	if err := acl.addBaseEntryFromMode(TagGroupObj, r, w, e); err != nil {
-		return err
-	}
-
-	// Set OTHER entry
-	r = mode&otherRead == otherRead
-	w = mode&otherWrite == otherWrite
-	e = mode&otherExec == otherExec
-	if err := acl.addBaseEntryFromMode(TagOther, r, w, e); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (acl *ACL) addBaseEntryFromMode(tag Tag, read, write, execute bool) error {
-	e, err := acl.CreateEntry()
-	if err != nil {
-		return err
-	}
-	if err = e.SetTag(tag); err != nil {
-		return err
-	}
-	p, err := e.GetPermset()
-	if err != nil {
-		return err
-	}
-	if err := p.addPermsFromMode(read, write, execute); err != nil {
-		return err
-	}
-	fmt.Printf("perm: %s\n", p)
-	return nil
-}
-
-func (p *Permset) addPermsFromMode(read, write, execute bool) error {
-	if read {
-		if err := p.AddPerm(PermRead); err != nil {
-			return err
-		}
-	}
-	if write {
-		if err := p.AddPerm(PermWrite); err != nil {
-			return err
-		}
-	}
-	if execute {
-		if err := p.AddPerm(PermExecute); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 	if !acl.Valid() {
 		if err := acl.addBaseEntries(path); err != nil {
@@ -284,4 +210,27 @@ func GetFileAccess(path string) (*ACL, error) {
 // GetFileDefault returns the default ACL associated with the given file path.
 func GetFileDefault(path string) (*ACL, error) {
 	return getFile(path, C.ACL_TYPE_DEFAULT)
+}
+
+func (acl *ACL) Size() int64 {
+	return int64(C.acl_size(acl.a))
+}
+
+func (acl *ACL) CopyExt(buffer []byte) (int64, error) {
+	p := unsafe.Pointer(&buffer[0])
+	l := C.ssize_t(len(buffer))
+	i, err := C.acl_copy_ext(p, acl.a, l)
+	if i < 0 {
+		return int64(i), err
+	}
+	return int64(i), nil
+}
+
+func CopyInt(buffer []byte) (*ACL, error) {
+	p := unsafe.Pointer(&buffer[0])
+	cacl, err := C.acl_copy_int(p)
+	if cacl == nil {
+		return nil, err
+	}
+	return &ACL{cacl}, nil
 }

@@ -4,14 +4,11 @@ package acl
 //  #include <sys/types.h>
 // #endif
 // #include <sys/acl.h>
-// #include <acl/libacl.h>
 // #cgo linux LDFLAGS: -lacl
 import "C"
 import "fmt"
 
 const (
-	PermRead    Perm = C.ACL_READ
-	PermWrite   Perm = C.ACL_WRITE
 	PermExecute Perm = C.ACL_EXECUTE
 )
 
