@@ -71,7 +71,6 @@ func (acl *ACL) addBaseEntryFromMode(tag Tag, read, write, execute bool) error {
 	if err := p.addPermsFromMode(read, write, execute); err != nil {
 		return err
 	}
-	fmt.Printf("perm: %s\n", p)
 	return nil
 }
 

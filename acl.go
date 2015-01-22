@@ -163,7 +163,6 @@ func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 
 	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
 	if rv < 0 {
-		fmt.Println(acl)
 		return fmt.Errorf("unable to apply ACL to file")
 	}
 	return nil
