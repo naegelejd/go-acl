@@ -1,3 +1,5 @@
+// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+
 package acl
 
 // #include <sys/acl.h>

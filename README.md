@@ -27,3 +27,8 @@ The specificaiton was abandoned before finalization, however most
 UNIX-like operating systems have some form of ACL implementation.
 
 Source: http://www.gsp.com/cgi-bin/man.cgi?section=3&topic=posix1e
+
+## copying
+
+Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+

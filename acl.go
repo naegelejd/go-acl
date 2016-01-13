@@ -1,3 +1,5 @@
+// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+
 // Package acl provides an interface to Posix.1e Access Control Lists
 // as well as additional ACL implementations (NFS).
 package acl
