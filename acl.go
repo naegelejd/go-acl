@@ -9,6 +9,22 @@ package acl
 // #endif
 // #include <sys/acl.h>
 // #cgo linux LDFLAGS: -lacl
+//
+// /*
+//  * FreeBSD does not contain acl_size and even when it was there, it seemd
+//  * to have been non-functional anyway. See FreeBSD r274722.
+//  */ 
+// #ifdef __FreeBSD__
+// #include <errno.h>
+// # endif
+// ssize_t acl_size_wrapper(acl_t acl) {
+// #ifdef __FreeBSD__
+//     errno = ENOSYS;
+//     return (-1);
+// #else
+//     return acl_size(acl);
+// #endif
+// }
 import "C"
 
 import (
@@ -214,7 +230,7 @@ func GetFileDefault(path string) (*ACL, error) {
 }
 
 func (acl *ACL) Size() int64 {
-	return int64(C.acl_size(acl.a))
+	return int64(C.acl_size_wrapper(acl.a))
 }
 
 func (acl *ACL) CopyExt(buffer []byte) (int64, error) {
