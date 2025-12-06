@@ -30,6 +30,7 @@ import "C"
 import (
 	"fmt"
 	"unsafe"
+	"os"
 )
 
 const (
@@ -42,6 +43,9 @@ const (
 	userExec   = 1 << iota
 	userWrite  = 1 << iota
 	userRead   = 1 << iota
+
+	TextSomeEffective = C.TEXT_SOME_EFFECTIVE
+	TextNumericIDs    = C.TEXT_NUMERIC_IDS
 )
 
 // UID/GID values are returned as ints in package "os".
@@ -77,7 +81,12 @@ func (acl *ACL) CalcMask() error {
 
 // String returns the string representation of the ACL.
 func (acl *ACL) String() string {
-	cs, _ := C.acl_to_text(acl.a, nil)
+	return acl.StringWithOptions(TextSomeEffective) // consistent with libacl's acl_to_text()
+}
+
+// StringWithOptions returns the string representation of the ACL based on the options provided.
+func (acl *ACL) StringWithOptions(options int) string {
+	cs, _ := C.acl_to_any_text(acl.a, nil, '\n', C.int(options))
 	if cs == nil {
 		return ""
 	}
@@ -250,4 +259,17 @@ func CopyInt(buffer []byte) (*ACL, error) {
 		return nil, err
 	}
 	return &ACL{cacl}, nil
+}
+
+func (acl *ACL) EquivMode() (bool, os.FileMode, error) {
+	var cmode C.mode_t
+	var mode os.FileMode
+	cequiv, err := C.acl_equiv_mode(acl.a, &cmode)
+	if cequiv == -1 {
+		errno, _ := err.(syscall.Errno)
+		return false, mode, fmt.Errorf("unable to run acl_equiv_mode: %w", errno)
+	}
+	mode = os.FileMode(cmode) & os.ModePerm
+	equiv := cequiv == 0
+	return equiv, mode, nil
 }
