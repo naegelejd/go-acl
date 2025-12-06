@@ -29,6 +29,7 @@ import "C"
 
 import (
 	"fmt"
+	"syscall"
 	"unsafe"
 	"os"
 )
@@ -63,18 +64,20 @@ type ACL struct {
 // DeleteDefaultACL removes the default ACL from the specified path.
 // Unsupported on Mac OS X.
 func DeleteDefaultACL(path string) error {
-	rv, _ := C.acl_delete_def_file(C.CString(path))
+	rv, err := C.acl_delete_def_file(C.CString(path))
 	if rv < 0 {
-		return fmt.Errorf("unable to delete default ACL from file")
+		errno, _ := err.(syscall.Errno)
+		return fmt.Errorf("unable to delete default ACL from file: %w", errno)
 	}
 	return nil
 }
 
 // Unsupported on Mac OS X?
 func (acl *ACL) CalcMask() error {
-	rv, _ := C.acl_calc_mask(&acl.a)
+	rv, err := C.acl_calc_mask(&acl.a)
 	if rv < 0 {
-		return fmt.Errorf("unable to calculate mask")
+		errno, _ := err.(syscall.Errno)
+		return fmt.Errorf("unable to calculate mask: %w", errno)
 	}
 	return nil
 }
@@ -106,9 +109,10 @@ func (acl *ACL) Valid() bool {
 // CreateEntry creates a new, empty Entry in the ACL.
 func (acl *ACL) CreateEntry() (*Entry, error) {
 	var e C.acl_entry_t
-	rv, _ := C.acl_create_entry(&acl.a, &e)
+	rv, err := C.acl_create_entry(&acl.a, &e)
 	if rv < 0 {
-		return nil, fmt.Errorf("unable to create entry")
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to create entry: %w", errno)
 	}
 	return &Entry{e}, nil
 }
@@ -119,39 +123,43 @@ func (acl *ACL) AddEntry(entry *Entry) error {
 	if err != nil {
 		return err
 	}
-	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
+	rv, err := C.acl_copy_entry(newEntry.e, entry.e)
 	if rv < 0 {
-		return fmt.Errorf("unable to copy entry while adding new entry")
+		errno, _ := err.(syscall.Errno)
+		return fmt.Errorf("unable to copy entry while adding new entry: %w", errno)
 	}
 	return nil
 }
 
 // DeleteEntry removes a specific Entry from the ACL.
 func (acl *ACL) DeleteEntry(entry *Entry) error {
-	rv, _ := C.acl_delete_entry(acl.a, entry.e)
+	rv, err := C.acl_delete_entry(acl.a, entry.e)
 	if rv < 0 {
-		return fmt.Errorf("unable to delete entry")
+		errno, _ := err.(syscall.Errno)
+		return fmt.Errorf("unable to delete entry: %w", errno)
 	}
 	return nil
 }
 
 // Dup makes a copy of the ACL.
 func (acl *ACL) Dup() (*ACL, error) {
-	cdup, _ := C.acl_dup(acl.a)
+	cdup, err := C.acl_dup(acl.a)
 	if cdup == nil {
-		return nil, fmt.Errorf("unable to dup ACL")
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to dup ACL: %w", errno)
 	}
 	return &ACL{cdup}, nil
 }
 
 // New returns a new, initialized ACL.
-func New() *ACL {
-	cacl, _ := C.acl_init(C.int(1))
+func New() (*ACL, error) {
+	cacl, err := C.acl_init(C.int(1))
 	if cacl == nil {
 		// If acl_init fails, *ACL is invalid
-		return nil
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to create ACL: %w", errno)
 	}
-	return &ACL{cacl}
+	return &ACL{cacl}, nil
 }
 
 // FirstEntry returns the first entry in the ACL,
@@ -188,9 +196,10 @@ func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 		}
 	}
 
-	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
+	rv, err := C.acl_set_file(C.CString(path), tp, acl.a)
 	if rv < 0 {
-		return fmt.Errorf("unable to apply ACL to file")
+		errno, _ := err.(syscall.Errno)
+		return fmt.Errorf("unable to apply ACL to file: %w", errno)
 	}
 	return nil
 }
@@ -213,17 +222,19 @@ func (acl *ACL) Free() {
 // Parse constructs and ACL from a string representation.
 func Parse(s string) (*ACL, error) {
 	cs := C.CString(s)
-	cacl, _ := C.acl_from_text(cs)
+	cacl, err := C.acl_from_text(cs)
 	if cacl == nil {
-		return nil, fmt.Errorf("unable to parse ACL")
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to parse ACL: %w", errno)
 	}
 	return &ACL{cacl}, nil
 }
 
 func getFile(path string, tp C.acl_type_t) (*ACL, error) {
-	cacl, _ := C.acl_get_file(C.CString(path), tp)
+	cacl, err := C.acl_get_file(C.CString(path), tp)
 	if cacl == nil {
-		return nil, fmt.Errorf("unable to get ACL from file")
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to get ACL from file: %w", errno)
 	}
 	return &ACL{cacl}, nil
 }
@@ -247,7 +258,8 @@ func (acl *ACL) CopyExt(buffer []byte) (int64, error) {
 	l := C.ssize_t(len(buffer))
 	i, err := C.acl_copy_ext(p, acl.a, l)
 	if i < 0 {
-		return int64(i), err
+		errno, _ := err.(syscall.Errno)
+		return int64(i), fmt.Errorf("unable to copy ACL to external representation: %w", errno)
 	}
 	return int64(i), nil
 }
@@ -256,7 +268,8 @@ func CopyInt(buffer []byte) (*ACL, error) {
 	p := unsafe.Pointer(&buffer[0])
 	cacl, err := C.acl_copy_int(p)
 	if cacl == nil {
-		return nil, err
+		errno, _ := err.(syscall.Errno)
+		return nil, fmt.Errorf("unable to copy ACL to internal representation: %w", errno)
 	}
 	return &ACL{cacl}, nil
 }
