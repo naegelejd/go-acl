@@ -56,25 +56,6 @@ type ACL struct {
 	a C.acl_t
 }
 
-// DeleteDefaultACL removes the default ACL from the specified path.
-// Unsupported on Mac OS X.
-func DeleteDefaultACL(path string) error {
-	rv, _ := C.acl_delete_def_file(C.CString(path))
-	if rv < 0 {
-		return fmt.Errorf("unable to delete default ACL from file")
-	}
-	return nil
-}
-
-// Unsupported on Mac OS X?
-func (acl *ACL) CalcMask() error {
-	rv, _ := C.acl_calc_mask(&acl.a)
-	if rv < 0 {
-		return fmt.Errorf("unable to calculate mask")
-	}
-	return nil
-}
-
 // String returns the string representation of the ACL.
 func (acl *ACL) String() string {
 	cs, _ := C.acl_to_text(acl.a, nil)
@@ -169,33 +150,6 @@ func (acl *ACL) NextEntry() *Entry {
 	return &Entry{e}
 }
 
-func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
-	if !acl.Valid() {
-		if err := acl.addBaseEntries(path); err != nil {
-			return err
-		}
-		if !acl.Valid() {
-			return fmt.Errorf("Invalid ACL: %s", acl)
-		}
-	}
-
-	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
-	if rv < 0 {
-		return fmt.Errorf("unable to apply ACL to file")
-	}
-	return nil
-}
-
-// SetFileAccess applies the access ACL to a file.
-func (acl *ACL) SetFileAccess(path string) error {
-	return acl.setFile(path, C.ACL_TYPE_ACCESS)
-}
-
-// SetFileDefault applies the default ACL to a file.
-func (acl *ACL) SetFileDefault(path string) error {
-	return acl.setFile(path, C.ACL_TYPE_DEFAULT)
-}
-
 // Free releases the memory used by the ACL.
 func (acl *ACL) Free() {
 	C.acl_free(unsafe.Pointer(acl.a))
@@ -209,24 +163,6 @@ func Parse(s string) (*ACL, error) {
 		return nil, fmt.Errorf("unable to parse ACL")
 	}
 	return &ACL{cacl}, nil
-}
-
-func getFile(path string, tp C.acl_type_t) (*ACL, error) {
-	cacl, _ := C.acl_get_file(C.CString(path), tp)
-	if cacl == nil {
-		return nil, fmt.Errorf("unable to get ACL from file")
-	}
-	return &ACL{cacl}, nil
-}
-
-// GetFileAccess returns the access ACL associated with the given file path.
-func GetFileAccess(path string) (*ACL, error) {
-	return getFile(path, C.ACL_TYPE_ACCESS)
-}
-
-// GetFileDefault returns the default ACL associated with the given file path.
-func GetFileDefault(path string) (*ACL, error) {
-	return getFile(path, C.ACL_TYPE_DEFAULT)
 }
 
 func (acl *ACL) Size() int64 {
