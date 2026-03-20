@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -259,7 +258,6 @@ func delACL(a *acl.ACL) ACLSetter {
 			delTag, err := delEntry.GetTag()
 			if err != nil {
 				continue
-				return err
 			}
 			delQual, err := delEntry.GetQualifier()
 			if err != nil {
@@ -354,7 +352,7 @@ func apply(f ACLSetter, p string) error {
 		return err
 	}
 	if fi.IsDir() && recursive {
-		dirents, err := ioutil.ReadDir(p)
+		dirents, err := os.ReadDir(p)
 		if err != nil {
 			return err
 		}

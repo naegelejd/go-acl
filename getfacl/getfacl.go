@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -74,7 +73,7 @@ func recurse(p string, header bool) error {
 		return fmt.Errorf("Failed to stat path %s (%s)", p, err)
 	}
 	if fi.IsDir() {
-		dirents, err := ioutil.ReadDir(p)
+		dirents, err := os.ReadDir(p)
 		if err != nil {
 			return err
 		}
