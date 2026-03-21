@@ -7,6 +7,7 @@ package acl
 // #ifdef __APPLE__
 //  #include <sys/types.h>
 // #endif
+// #include <stdlib.h>
 // #include <sys/acl.h>
 // #cgo linux LDFLAGS: -lacl
 //
@@ -171,6 +172,7 @@ func (acl *ACL) Free() {
 // Parse constructs an ACL from a string representation.
 func Parse(s string) (*ACL, error) {
 	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
 	cacl, _ := C.acl_from_text(cs)
 	if cacl == nil {
 		return nil, fmt.Errorf("unable to parse ACL")

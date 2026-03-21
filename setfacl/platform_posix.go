@@ -54,11 +54,16 @@ func clearDefaultACL(path string) error {
 }
 
 // entriesMatch reports whether two entries have the same tag and uid/gid qualifier.
+// Tags that do not carry a qualifier (TagMask, TagUserObj, TagGroupObj, TagOther)
+// are matched by tag alone; qualifier comparison is only done for TagUser/TagGroup.
 func entriesMatch(a, b *acl.Entry) bool {
 	tagA, errA := a.GetTag()
 	tagB, errB := b.GetTag()
 	if errA != nil || errB != nil || tagA != tagB {
 		return false
+	}
+	if tagA != acl.TagUser && tagA != acl.TagGroup {
+		return true
 	}
 	qA, errA := a.GetQualifier()
 	qB, errB := b.GetQualifier()

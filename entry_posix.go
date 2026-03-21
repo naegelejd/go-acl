@@ -15,7 +15,8 @@ import (
 // SetQualifier sets the qualifier (uid or gid as int) for the entry.
 // On Linux and FreeBSD qualifiers are uid or gid integers.
 func (entry *Entry) SetQualifier(id int) error {
-	rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&id))
+	cid := C.uid_t(id)
+	rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&cid))
 	if rv < 0 {
 		return fmt.Errorf("unable to set qualifier")
 	}
@@ -29,5 +30,6 @@ func (entry *Entry) GetQualifier() (int, error) {
 	if q == nil {
 		return -1, fmt.Errorf("unable to get qualifier")
 	}
-	return *(*int)(q), nil
+	defer C.acl_free(q)
+	return int(*(*C.uid_t)(q)), nil
 }

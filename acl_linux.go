@@ -26,7 +26,7 @@ const (
 // FromMode creates a minimal three-entry ACL (user, group, other) equivalent
 // to the given Unix permission bits, using acl_from_mode(3).
 func FromMode(mode os.FileMode) (*ACL, error) {
-	cacl, _ := C.acl_from_mode(C.mode_t(mode))
+	cacl, _ := C.acl_from_mode(C.mode_t(mode.Perm()))
 	if cacl == nil {
 		return nil, fmt.Errorf("acl_from_mode failed")
 	}

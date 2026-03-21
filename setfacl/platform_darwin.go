@@ -112,7 +112,10 @@ func parseDarwinEntry(a *acl.ACL, s string) error {
 		if err != nil {
 			return fmt.Errorf("unknown user %q: %w", name, err)
 		}
-		uid, _ := strconv.Atoi(u.Uid)
+		uid, err := strconv.Atoi(u.Uid)
+		if err != nil {
+			return fmt.Errorf("invalid uid for user %q: %w", name, err)
+		}
 		if err := e.SetQualifierUID(uid); err != nil {
 			return fmt.Errorf("unable to set qualifier for user %q: %w", name, err)
 		}
@@ -121,7 +124,10 @@ func parseDarwinEntry(a *acl.ACL, s string) error {
 		if err != nil {
 			return fmt.Errorf("unknown group %q: %w", name, err)
 		}
-		gid, _ := strconv.Atoi(g.Gid)
+		gid, err := strconv.Atoi(g.Gid)
+		if err != nil {
+			return fmt.Errorf("invalid gid for group %q: %w", name, err)
+		}
 		if err := e.SetQualifierGID(gid); err != nil {
 			return fmt.Errorf("unable to set qualifier for group %q: %w", name, err)
 		}

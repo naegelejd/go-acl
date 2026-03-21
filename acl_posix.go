@@ -4,6 +4,7 @@
 
 package acl
 
+// #include <stdlib.h>
 // #include <sys/acl.h>
 // #cgo linux LDFLAGS: -lacl
 import "C"
@@ -12,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"unsafe"
 )
 
 // GetFd returns the access ACL associated with the open file f.
@@ -42,7 +44,9 @@ func (acl *ACL) SetFd(f *os.File) error {
 
 // DeleteDefaultACL removes the default ACL from the specified path.
 func DeleteDefaultACL(path string) error {
-	rv, _ := C.acl_delete_def_file(C.CString(path))
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	rv, _ := C.acl_delete_def_file(cpath)
 	if rv < 0 {
 		return fmt.Errorf("unable to delete default ACL from file")
 	}
@@ -67,7 +71,9 @@ func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 			return fmt.Errorf("invalid ACL: %s", acl)
 		}
 	}
-	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	rv, _ := C.acl_set_file(cpath, tp, acl.a)
 	if rv < 0 {
 		return fmt.Errorf("unable to apply ACL to file")
 	}
@@ -85,7 +91,9 @@ func (acl *ACL) SetFileDefault(path string) error {
 }
 
 func getFile(path string, tp C.acl_type_t) (*ACL, error) {
-	cacl, _ := C.acl_get_file(C.CString(path), tp)
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	cacl, _ := C.acl_get_file(cpath, tp)
 	if cacl == nil {
 		return nil, fmt.Errorf("unable to get ACL from file")
 	}

@@ -3,6 +3,7 @@
 package acl
 
 // #include <sys/types.h>
+// #include <stdlib.h>
 // #include <sys/acl.h>
 // #include <membership.h>
 //
@@ -39,6 +40,7 @@ import (
 	"fmt"
 	"strings"
 	"syscall"
+	"unsafe"
 )
 
 const (
@@ -215,7 +217,9 @@ func DeleteDefaultACL(path string) error {
 // macOS does not support POSIX.1e access ACLs; this uses ACL_TYPE_EXTENDED
 // (NFSv4) instead. Files that have no extended ACL return an empty ACL.
 func GetFileAccess(path string) (*ACL, error) {
-	cacl, err := C.acl_get_file(C.CString(path), C.ACL_TYPE_EXTENDED)
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	cacl, err := C.acl_get_file(cpath, C.ACL_TYPE_EXTENDED)
 	if cacl == nil {
 		if err == syscall.ENOENT {
 			// No extended ACL on this file — return an empty ACL.
@@ -234,7 +238,9 @@ func GetFileDefault(path string) (*ACL, error) {
 // SetFileAccess sets the extended ACL on a file.
 // macOS only supports ACL_TYPE_EXTENDED; POSIX.1e access ACLs are not supported.
 func (acl *ACL) SetFileAccess(path string) error {
-	rv, _ := C.acl_set_file(C.CString(path), C.ACL_TYPE_EXTENDED, acl.a)
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	rv, _ := C.acl_set_file(cpath, C.ACL_TYPE_EXTENDED, acl.a)
 	if rv < 0 {
 		return fmt.Errorf("unable to apply ACL to file")
 	}
