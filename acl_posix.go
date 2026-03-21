@@ -8,7 +8,37 @@ package acl
 // #cgo linux LDFLAGS: -lacl
 import "C"
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"runtime"
+)
+
+// GetFd returns the access ACL associated with the open file f.
+// This is equivalent to GetFileAccess but avoids a TOCTOU race when
+// the caller already holds an open file descriptor.
+func GetFd(f *os.File) (*ACL, error) {
+	fd := C.int(f.Fd())
+	runtime.KeepAlive(f)
+	cacl, _ := C.acl_get_fd(fd)
+	if cacl == nil {
+		return nil, fmt.Errorf("unable to get ACL from fd")
+	}
+	return &ACL{cacl}, nil
+}
+
+// SetFd applies the access ACL to the open file f.
+// This is equivalent to SetFileAccess but avoids a TOCTOU race when
+// the caller already holds an open file descriptor.
+func (acl *ACL) SetFd(f *os.File) error {
+	fd := C.int(f.Fd())
+	runtime.KeepAlive(f)
+	rv, _ := C.acl_set_fd(fd, acl.a)
+	if rv < 0 {
+		return fmt.Errorf("unable to set ACL on fd")
+	}
+	return nil
+}
 
 // DeleteDefaultACL removes the default ACL from the specified path.
 func DeleteDefaultACL(path string) error {

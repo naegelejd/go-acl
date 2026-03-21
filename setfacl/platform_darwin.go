@@ -18,6 +18,20 @@ func calculateMask(a *acl.ACL) error {
 	return nil
 }
 
+// clearExtendedEntries removes all NFSv4 ACL entries from path by setting an
+// empty ACL. On macOS, acl_set_file(ACL_TYPE_EXTENDED, empty) is sufficient
+// because an empty ACL is valid and the three base entries do not exist.
+func clearExtendedEntries(path string) error {
+	empty := acl.New()
+	defer empty.Free()
+	return empty.SetFileAccess(path)
+}
+
+// clearDefaultACL is a no-op on macOS; default ACLs are not supported.
+func clearDefaultACL(_ string) error {
+	return nil
+}
+
 // entriesMatch reports whether two ACL entries have the same tag and qualifier.
 // Uses GetQualifierID to compare the (id, type) pair encoded in each UUID qualifier.
 func entriesMatch(a, b *acl.Entry) bool {

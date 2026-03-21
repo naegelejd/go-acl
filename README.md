@@ -1,34 +1,110 @@
 # go-acl
 
-Golang POSIX.1e ACL bindings.
-Essentially bindings to /usr/include/sys/acl.h
-## notes
+[![CI](https://github.com/naegelejd/go-acl/actions/workflows/ci.yml/badge.svg)](https://github.com/naegelejd/go-acl/actions/workflows/ci.yml)
 
-### mac os x
-Mac OS X does not seem to support basic POSIX1.e ACLs. They do
-provide the POSIX API for NFSv4 ACLs. It would be nice for this
-package to also support NFSv4 ACLs.
+Go bindings for POSIX.1e ACLs (Linux) and NFSv4 ACLs (macOS).
 
-### freebsd
-By default, FreeBSD does not enable POSIX1.e ACLs on the root
-partition. To enable them, reboot into single-user mode and execute:
+## Platform Support
 
-    $ tunefs -a enable
-    $ reboot
+| Platform | ACL Model | Library |
+|---|---|---|
+| Linux | POSIX.1e (`ACL_TYPE_ACCESS`, `ACL_TYPE_DEFAULT`) | `libacl` (`-lacl`) |
+| macOS | NFSv4 subset (`ACL_TYPE_EXTENDED`) | system `libc` |
+| FreeBSD | POSIX.1e (partial, untested) | system `libc` |
 
-Source: https://www.freebsd.org/doc/handbook/fs-acl.html
+## Requirements
 
-## info
+**Linux:** install `libacl1-dev` (Debian/Ubuntu) or `libacl-devel` (Fedora/RHEL):
 
-The IEEE POSIX.1e specification describes five security extensions to the base
-POSIX.1 API: Access Control Lists (ACLs), Auditing, Capabilities,
-Mandatory Access Control, and Information Flow Labels.
-The specificaiton was abandoned before finalization, however most
-UNIX-like operating systems have some form of ACL implementation.
+```sh
+sudo apt-get install libacl1-dev   # Debian / Ubuntu
+sudo dnf install libacl-devel      # Fedora / RHEL
+```
 
-Source: http://www.gsp.com/cgi-bin/man.cgi?section=3&topic=posix1e
+**macOS:** no extra dependencies. The ACL library ships with the OS.
 
-## copying
+## Installation
 
-Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+```sh
+go get github.com/naegelejd/go-acl
+```
+
+## Usage
+
+### Linux (POSIX.1e)
+
+```go
+import acl "github.com/naegelejd/go-acl"
+
+// Read the access ACL from a file.
+a, err := acl.GetFileAccess("/path/to/file")
+if err != nil { ... }
+defer a.Free()
+
+// Iterate entries.
+for e := a.FirstEntry(); e != nil; e = a.NextEntry() {
+    tag, _ := e.GetTag()
+    pset, _ := e.GetPermset()
+    fmt.Printf("tag=%d perms=%s\n", tag, pset)
+}
+
+// Add a named user entry.
+entry, _ := a.CreateEntry()
+entry.SetTag(acl.TagUser)
+entry.SetQualifier(uid)
+pset, _ := entry.GetPermset()
+pset.AddPerm(acl.PermRead)
+a.CalcMask()
+a.SetFileAccess("/path/to/file")
+
+// Create an ACL from Unix mode bits.
+a, _ = acl.FromMode(0644)
+defer a.Free()
+
+// Check whether an ACL is equivalent to a plain Unix mode (no named entries).
+mode, isEquiv, _ := a.EquivMode()
+```
+
+### macOS (NFSv4)
+
+```go
+import acl "github.com/naegelejd/go-acl"
+
+// Grant the current user read and execute access.
+a, _ := acl.GetFileAccess("/path/to/file")
+defer a.Free()
+
+entry, _ := a.CreateEntry()
+entry.SetTag(acl.TagExtendedAllow)
+entry.SetQualifierUID(os.Getuid())
+pset, _ := entry.GetPermset()
+pset.AddPerm(acl.PermReadData)
+pset.AddPerm(acl.PermExecute)
+a.SetFileAccess("/path/to/file")
+
+// Set an inheritance flag on a directory entry.
+fs, _ := entry.GetFlagset()
+fs.AddFlag(acl.FlagFileInherit)
+```
+
+## Development
+
+This project uses [`just`](https://just.systems/) as a task runner.
+
+```sh
+just          # list available recipes
+just check    # vet + test (macOS/Linux native)
+just all      # full pipeline on macOS and Linux (via Docker)
+
+just docker test             # run tests in Linux Docker container
+just docker cover            # coverage report in Linux Docker container
+just docker roundtrip-linux  # Linux ACL round-trip demo
+just docker-shell            # interactive Linux shell
+```
+
+See [PLAN.md](PLAN.md) for outstanding work.
+
+## License
+
+Copyright (c) 2026 Joseph Naegele. See [LICENSE](LICENSE).
 

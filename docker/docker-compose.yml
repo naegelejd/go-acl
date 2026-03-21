@@ -1,19 +1,19 @@
-services:
-  # dev: interactive shell with the repo mounted. Use: docker compose run dev
-  dev:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    volumes:
-      - ..:/workspace
-    working_dir: /workspace
+# Shared build + mount configuration, referenced by every service below.
+x-base: &base
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  volumes:
+    - ..:/workspace
+  working_dir: /workspace
 
-  # test: run the full test suite and exit. Use: docker compose run test
-  test:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    volumes:
-      - ..:/workspace
-    working_dir: /workspace
-    command: go test -race -count=1 -v ./...
+services:
+  # dev: interactive shell with the repo mounted. Use: just docker-shell
+  dev:
+    <<: *base
+
+  # runner: runs an arbitrary just recipe passed via RECIPE env var.
+  # All docker-* justfile recipes use this service.
+  runner:
+    <<: *base
+    command: ["just", "${RECIPE}"]

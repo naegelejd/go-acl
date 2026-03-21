@@ -268,17 +268,21 @@ func delACL(a *acl.ACL) ACLSetter {
 	}
 }
 
-func deleteAll(a *acl.ACL) ACLSetter {
+func deleteAll(_ *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var err error
-		if err = calculateMask(a); err != nil {
+		// Strip all named-user, named-group, and mask entries from the access
+		// ACL, leaving only the three POSIX base entries. On Darwin this sets
+		// an empty ACL (no base entries exist in the NFSv4 model).
+		if err := clearExtendedEntries(p); err != nil {
 			return err
 		}
-		if err = a.SetFileAccess(p); err != nil {
+		// Default ACLs only exist on directories.
+		fi, err := os.Stat(p)
+		if err != nil {
 			return err
 		}
-		if err = a.SetFileDefault(p); err != nil {
-			return err
+		if fi.IsDir() {
+			return clearDefaultACL(p)
 		}
 		return nil
 	}

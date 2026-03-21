@@ -13,13 +13,15 @@
 
 FROM golang:1.24-bookworm
 
-# Install libacl1-dev (required by '#cgo linux LDFLAGS: -lacl') and the
-# acl(1) CLI tools for manual inspection / round-trip testing.
+# Install libacl1-dev (required by '#cgo linux LDFLAGS: -lacl'), the
+# acl(1) CLI tools for manual inspection / round-trip testing, and
+# just (task runner) so container recipes match the host exactly.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         libacl1-dev \
         acl \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -sSfL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
 WORKDIR /workspace
 

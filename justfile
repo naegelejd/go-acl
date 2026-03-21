@@ -1,13 +1,43 @@
 # Default: list available recipes
-default: check
+default: list
+
+# List all available recipes
+list:
+    @just --list
+
+# ── Full cross-platform pipeline ────────────────────────────────────────────
+
+# Run the complete build/vet/test/cover/roundtrip pipeline on macOS AND Linux.
+# Use this as the single command before committing or tagging a release.
+all:
+    @echo ''
+    @echo '════════════════════════════════════════'
+    @echo '  macOS (native)'
+    @echo '════════════════════════════════════════'
+    just build
+    just vet
+    just cover
+    just roundtrip
+    @echo ''
+    @echo '════════════════════════════════════════'
+    @echo '  Linux (Docker)'
+    @echo '════════════════════════════════════════'
+    just build-docker
+    just docker build
+    just docker vet
+    just docker cover
+    just docker roundtrip-linux
+    just docker test
+
+# ── macOS recipes ────────────────────────────────────────────────────────────
 
 # Build all packages
 build:
-    go build -v ./...
+    go build ./...
 
 # Run all tests
 test:
-    go test -v ./...
+    go test ./...
 
 # Run go vet
 vet:
@@ -37,18 +67,28 @@ roundtrip:
     go run ./getfacl/ /tmp/acl-roundtrip-test
     rm /tmp/acl-roundtrip-test
 
-# Build and run the darwin probe (macOS only)
-probe-darwin:
-    cc -o probe/darwin_probe probe/darwin_probe.c
-    probe/darwin_probe
+# Round-trip: grant access, display, delete, display (Linux POSIX format)
+roundtrip-linux:
+    touch /tmp/acl-roundtrip-test
+    @echo '--- set ACL ---'
+    go run ./setfacl/ -m "user:$(whoami):rwx" /tmp/acl-roundtrip-test
+    @echo '--- getfacl after set ---'
+    go run ./getfacl/ /tmp/acl-roundtrip-test
+    @echo '--- delete all extended ACL entries (-b) ---'
+    go run ./setfacl/ -b /tmp/acl-roundtrip-test
+    @echo '--- getfacl after delete (base entries only) ---'
+    go run ./getfacl/ /tmp/acl-roundtrip-test
+    rm /tmp/acl-roundtrip-test
+
+# ── Docker (Linux) recipes ───────────────────────────────────────────────────
 
 # Build the Linux Docker image
-docker-build:
-    docker compose -f docker/docker-compose.yml build
+build-docker:
+    docker compose -f docker/docker-compose.yml build --quiet
 
-# Run go test ./... inside the Linux Docker container
-docker-test:
-    docker compose -f docker/docker-compose.yml run --rm test
+# Run any just recipe inside the Linux Docker container: just docker build, just docker test, etc.
+docker recipe:
+    RECIPE={{recipe}} docker compose -f docker/docker-compose.yml run --rm runner
 
 # Open an interactive shell inside the Linux Docker container
 docker-shell:
