@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package main
 
@@ -153,7 +153,7 @@ func main() {
 			log.Fatal("Invalid mode. Contact author")
 		}
 		var err error
-		a, err = acl.Parse(source)
+		a, err = parseACLArg(source)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -178,15 +178,6 @@ func countModes(modes ...bool) int {
 		}
 	}
 	return count
-}
-
-func calculateMask(a *acl.ACL) error {
-	if calcMask {
-		if err := a.CalcMask(); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func setACL(a *acl.ACL) ACLSetter {
@@ -252,30 +243,15 @@ func delACL(a *acl.ACL) ACLSetter {
 			return err
 		}
 
-		// TODO: remove existing ACL matching specified ACL
-		// for each entry in a, for each entry in x, if tag and qualifier match, remove from x
+		// For each entry to delete, scan the file ACL for a matching entry
+		// (same tag and qualifier) and remove it.
 		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
-			delTag, err := delEntry.GetTag()
-			if err != nil {
-				continue
-			}
-			delQual, err := delEntry.GetQualifier()
-			if err != nil {
-				continue
-			}
 			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
-				exTag, err := exEntry.GetTag()
-				if err != nil {
-					continue
-				}
-				exQual, err := exEntry.GetQualifier()
-				if err != nil {
-					continue
-				}
-				if delTag == exTag && delQual == exQual {
-					if err := x.DeleteEntry(delEntry); err != nil {
+				if entriesMatch(delEntry, exEntry) {
+					if err := x.DeleteEntry(exEntry); err != nil {
 						return err
 					}
+					break
 				}
 			}
 		}
