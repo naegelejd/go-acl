@@ -1,3 +1,5 @@
+version: "2"
+
 # Rely on the default linter set (errcheck, govet, ineffassign, staticcheck, unused).
 # staticcheck subsumes gosimple and stylecheck as of golangci-lint v2.
 
