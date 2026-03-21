@@ -10,11 +10,12 @@ permissions:
   contents: read
 
 jobs:
-  test-macos:
-    name: Test (macOS)
-    runs-on: macos-latest
+  ci:
+    name: CI (${{ matrix.os }}, Go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, ubuntu-latest]
         go: ["1.22", "1.23", "1.24"]
     steps:
       - uses: actions/checkout@v4
@@ -23,55 +24,19 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Test
-        run: go test -race -count=1 ./...
-
-  lint:
-    name: Lint
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
 
       - name: Install libacl (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install -y libacl1-dev
 
-      - name: Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v2
-
-  test-linux:
-    name: Test (Linux)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: ["1.22", "1.23", "1.24"]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go ${{ matrix.go }}
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: Install libacl
-        run: sudo apt-get install -y libacl1-dev
-
       - name: Vet
         run: go vet ./...
 
       - name: Test
         run: go test -race -count=1 ./...
+
+      - name: Lint
+        if: matrix.go == '1.24'
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.10
