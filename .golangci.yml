@@ -1,0 +1,12 @@
+version: "2"
+
+# Rely on the default linter set (errcheck, govet, ineffassign, staticcheck, unused).
+# staticcheck subsumes gosimple and stylecheck as of golangci-lint v2.
+
+issues:
+  # Test files: allow unhandled errors (common in table-driven tests and
+  # defer/cleanup calls where the error is intentionally discarded).
+  exclude-rules:
+    - path: "_test\\.go$"
+      linters:
+        - errcheck

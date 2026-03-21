@@ -88,10 +88,7 @@ func (acl *ACL) String() string {
 // Valid checks if the ACL is valid.
 func (acl *ACL) Valid() bool {
 	rv := C.acl_valid(acl.a)
-	if rv < 0 {
-		return false
-	}
-	return true
+	return rv >= 0
 }
 
 // CreateEntry creates a new, empty Entry in the ACL.

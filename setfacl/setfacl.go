@@ -68,15 +68,6 @@ var (
 	ignoreLinks  bool
 	calcMask     bool
 	applyDefault bool
-	dryRun       bool
-)
-
-type Mode int
-
-const (
-	setMode int = iota
-	modMode
-	delMode
 )
 
 type ACLSetter func(p string) error

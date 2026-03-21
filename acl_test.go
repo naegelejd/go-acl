@@ -19,7 +19,9 @@ func makeTmpFile(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return path
 }
 

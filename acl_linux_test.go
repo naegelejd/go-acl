@@ -292,13 +292,19 @@ func TestDefaultACLRoundTrip(t *testing.T) {
 			t.Fatal(err)
 		}
 		if r {
-			p.AddPerm(PermRead)
+			if err := p.AddPerm(PermRead); err != nil {
+				t.Fatal(err)
+			}
 		}
 		if w {
-			p.AddPerm(PermWrite)
+			if err := p.AddPerm(PermWrite); err != nil {
+				t.Fatal(err)
+			}
 		}
 		if x {
-			p.AddPerm(PermExecute)
+			if err := p.AddPerm(PermExecute); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	addEntry(TagUserObj, true, true, true)
@@ -341,7 +347,7 @@ func TestGetFd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	acl, err := GetFd(f)
 	if err != nil {
@@ -389,7 +395,7 @@ func TestSetFd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if err := base.SetFd(f); err != nil {
 		t.Fatal(err)

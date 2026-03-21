@@ -16,6 +16,7 @@ all:
     @echo '════════════════════════════════════════'
     just build
     just vet
+    just lint
     just cover
     just roundtrip
     @echo ''
@@ -25,6 +26,7 @@ all:
     just build-docker
     just docker build
     just docker vet
+    just docker lint
     just docker cover
     just docker roundtrip-linux
     just docker test
@@ -42,6 +44,10 @@ test:
 # Run go vet
 vet:
     go vet ./...
+
+# Run golangci-lint
+lint:
+    golangci-lint run ./...
 
 # Run vet + tests
 check: vet test

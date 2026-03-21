@@ -21,7 +21,9 @@ RUN apt-get update \
         libacl1-dev \
         acl \
  && rm -rf /var/lib/apt/lists/* \
- && curl -sSfL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+ && curl -sSfL https://just.systems/install.sh | bash -s -- --to /usr/local/bin \
+ && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    | sh -s -- -b /usr/local/bin latest
 
 WORKDIR /workspace
 

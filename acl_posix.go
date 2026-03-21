@@ -64,7 +64,7 @@ func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 			return err
 		}
 		if !acl.Valid() {
-			return fmt.Errorf("Invalid ACL: %s", acl)
+			return fmt.Errorf("invalid ACL: %s", acl)
 		}
 	}
 	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
