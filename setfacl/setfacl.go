@@ -328,8 +328,7 @@ func apply(f ACLSetter, p string) error {
 			return err
 		}
 		for _, child := range dirents {
-			p = filepath.Join(p, child.Name())
-			if err := apply(f, p); err != nil {
+			if err := apply(f, filepath.Join(p, child.Name())); err != nil {
 				return err
 			}
 		}
