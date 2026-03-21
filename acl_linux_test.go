@@ -64,3 +64,70 @@ func TestAddEntry(t *testing.T) {
 
 	checkForBaseEntries(t, empty)
 }
+
+func TestCalcMask(t *testing.T) {
+	acl := getACLFromTmpFile(t)
+	defer acl.Free()
+	if err := acl.CalcMask(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDeleteDefaultACL(t *testing.T) {
+	if err := os.Mkdir(tmpdir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpdir)
+	if err := DeleteDefaultACL(tmpdir); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEntrySetGetTag(t *testing.T) {
+	acl := New()
+	if acl == nil {
+		t.Fatal("unable to create ACL")
+	}
+	defer acl.Free()
+	e, err := acl.CreateEntry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.SetTag(TagUser); err != nil {
+		t.Fatal(err)
+	}
+	tag, err := e.GetTag()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag != TagUser {
+		t.Fatalf("expected TagUser (%d), got %d", TagUser, tag)
+	}
+}
+
+func TestEntrySetGetQualifier(t *testing.T) {
+	acl := New()
+	if acl == nil {
+		t.Fatal("unable to create ACL")
+	}
+	defer acl.Free()
+	e, err := acl.CreateEntry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// qualifier is only meaningful on ACL_USER / ACL_GROUP entries
+	if err := e.SetTag(TagUser); err != nil {
+		t.Fatal(err)
+	}
+	uid := os.Getuid()
+	if err := e.SetQualifier(uid); err != nil {
+		t.Fatal(err)
+	}
+	got, err := e.GetQualifier()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != uid {
+		t.Fatalf("expected qualifier %d, got %d", uid, got)
+	}
+}

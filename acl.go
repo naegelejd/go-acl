@@ -13,7 +13,7 @@ package acl
 // /*
 //  * FreeBSD does not contain acl_size and even when it was there, it seemed
 //  * to have been non-functional anyway. See FreeBSD r274722.
-//  */ 
+//  */
 // #ifdef __FreeBSD__
 // #include <errno.h>
 // # endif
@@ -23,6 +23,25 @@ package acl
 //     return (-1);
 // #else
 //     return acl_size(acl);
+// #endif
+// }
+//
+// /*
+//  * Normalize acl_get_entry return values to POSIX semantics:
+//  *   1  = entry returned
+//  *   0  = end of list (or error — caller stops iteration either way)
+//  *  -1  = hard error (unused here; treated as 0 for simplicity)
+//  *
+//  * macOS deviates from POSIX: it returns 0 on success and -1 when the
+//  * list is exhausted (errno=EINVAL). Linux and FreeBSD already follow
+//  * POSIX (1 = found, 0 = end).
+//  */
+// static int acl_get_entry_posix(acl_t acl, int eid, acl_entry_t *ep) {
+//     int rv = acl_get_entry(acl, eid, ep);
+// #ifdef __APPLE__
+//     return (rv == 0) ? 1 : 0;
+// #else
+//     return rv;
 // #endif
 // }
 import "C"
@@ -126,24 +145,22 @@ func New() *ACL {
 }
 
 // FirstEntry returns the first entry in the ACL,
-// or nil of there are no more entries.
+// or nil if there are no entries.
 func (acl *ACL) FirstEntry() *Entry {
 	var e C.acl_entry_t
-	rv, _ := C.acl_get_entry(acl.a, C.ACL_FIRST_ENTRY, &e)
+	rv := C.acl_get_entry_posix(acl.a, C.ACL_FIRST_ENTRY, &e)
 	if rv <= 0 {
-		// error obtaining entry, or no entries at all
 		return nil
 	}
 	return &Entry{e}
 }
 
 // NextEntry returns the next entry in the ACL,
-// or nil of there are no more entries.
+// or nil if there are no more entries.
 func (acl *ACL) NextEntry() *Entry {
 	var e C.acl_entry_t
-	rv, _ := C.acl_get_entry(acl.a, C.ACL_NEXT_ENTRY, &e)
+	rv := C.acl_get_entry_posix(acl.a, C.ACL_NEXT_ENTRY, &e)
 	if rv <= 0 {
-		// either error obtaining entry or no more entries
 		return nil
 	}
 	return &Entry{e}
