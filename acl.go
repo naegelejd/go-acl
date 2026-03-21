@@ -1,7 +1,7 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
-// Package acl provides an interface to Posix.1e Access Control Lists
-// as well as additional ACL implementations (NFS).
+// Package acl provides POSIX.1e ACL bindings for Linux and FreeBSD, and
+// NFSv4 (extended) ACL bindings for macOS via the system acl(3) library.
 package acl
 
 // #ifdef __APPLE__
@@ -11,7 +11,7 @@ package acl
 // #cgo linux LDFLAGS: -lacl
 //
 // /*
-//  * FreeBSD does not contain acl_size and even when it was there, it seemd
+//  * FreeBSD does not contain acl_size and even when it was there, it seemed
 //  * to have been non-functional anyway. See FreeBSD r274722.
 //  */ 
 // #ifdef __FreeBSD__
@@ -120,7 +120,6 @@ func (acl *ACL) Dup() (*ACL, error) {
 func New() *ACL {
 	cacl, _ := C.acl_init(C.int(1))
 	if cacl == nil {
-		// If acl_init fails, *ACL is invalid
 		return nil
 	}
 	return &ACL{cacl}
@@ -132,7 +131,7 @@ func (acl *ACL) FirstEntry() *Entry {
 	var e C.acl_entry_t
 	rv, _ := C.acl_get_entry(acl.a, C.ACL_FIRST_ENTRY, &e)
 	if rv <= 0 {
-		// either error obtaining entry or entries at all
+		// error obtaining entry, or no entries at all
 		return nil
 	}
 	return &Entry{e}
@@ -155,7 +154,7 @@ func (acl *ACL) Free() {
 	C.acl_free(unsafe.Pointer(acl.a))
 }
 
-// Parse constructs and ACL from a string representation.
+// Parse constructs an ACL from a string representation.
 func Parse(s string) (*ACL, error) {
 	cs := C.CString(s)
 	cacl, _ := C.acl_from_text(cs)

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
+
 //go:build linux || freebsd
 
 package acl

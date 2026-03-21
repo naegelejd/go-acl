@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package acl
 
@@ -41,7 +41,9 @@ func (entry *Entry) Copy() (*Entry, error) {
 	return &Entry{cdst}, nil
 }
 
-// SetQualifier sets the Uid or Gid the entry applies to.
+// SetQualifier sets the qualifier (uid or gid as int) for the entry.
+// On Linux and FreeBSD this is the uid or gid. On macOS, qualifiers
+// are UUIDs; use platform-specific helpers instead.
 func (entry *Entry) SetQualifier(id int) error {
 	rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&id))
 	if rv < 0 {
@@ -50,13 +52,15 @@ func (entry *Entry) SetQualifier(id int) error {
 	return nil
 }
 
-// GetQualifier returns the Uid or Gid the entry applies to.
+// GetQualifier returns the qualifier (uid or gid as int) for the entry.
+// On Linux and FreeBSD this is the uid or gid. On macOS, qualifiers
+// are UUIDs; use platform-specific helpers instead.
 func (entry *Entry) GetQualifier() (int, error) {
 	q := C.acl_get_qualifier(entry.e)
-        if q == nil {   
-                return -1, fmt.Errorf("unable to get qualifier")
-        }
-        return *(*int)(q), nil
+	if q == nil {
+		return -1, fmt.Errorf("unable to get qualifier")
+	}
+	return *(*int)(q), nil
 }
 
 // GetPermset returns the permission for an Entry.

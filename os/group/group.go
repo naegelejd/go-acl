@@ -1,16 +1,11 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 // Package group allows group lookups by name or id.
 package group
 
 var implemented = true // set to false by lookup_stubs.go's init
 
-// Group represents a group
-//
-// On posix systems Gid contains a decimal number
-// representing gid. On windows Gid contain security
-// identifier (SID) in a string format. On Plan 9,
-// Gid, and Name will be the contents of /dev/group.
+// Group represents a Unix group. Gid contains the decimal group ID as a string.
 type Group struct {
 	Gid      string
 	Name     string

@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package acl
 
@@ -108,7 +108,7 @@ func (pset *Permset) String() string {
 	}
 	rv, _ = C.acl_get_perm(pset.p, C.ACL_EXECUTE)
 	if rv > 0 {
-		e = 'e'
+		e = 'x'
 	}
 
 	return fmt.Sprintf("%c%c%c", r, w, e)

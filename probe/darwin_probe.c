@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
+
 /*
  * darwin_probe.c — Experimentally confirm macOS ACL API behavior.
  *
