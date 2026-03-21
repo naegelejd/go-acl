@@ -39,14 +39,7 @@ func TestGetEntries(t *testing.T) {
 }
 
 func TestAddEntry(t *testing.T) {
-	f, err := os.Create(tmpfile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
-	defer os.Remove(tmpfile)
-
-	acl, err := GetFileAccess(tmpfile)
+	acl, err := GetFileAccess(makeTmpFile(t))
 	if err != nil {
 		t.Fatal("Failed to get ACL from file: ", err)
 	}
@@ -74,11 +67,7 @@ func TestCalcMask(t *testing.T) {
 }
 
 func TestDeleteDefaultACL(t *testing.T) {
-	if err := os.Mkdir(tmpdir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(tmpdir)
-	if err := DeleteDefaultACL(tmpdir); err != nil {
+	if err := DeleteDefaultACL(makeTmpDir(t)); err != nil {
 		t.Fatal(err)
 	}
 }

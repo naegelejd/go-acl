@@ -1,0 +1,19 @@
+services:
+  # dev: interactive shell with the repo mounted. Use: docker compose run dev
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+
+  # test: run the full test suite and exit. Use: docker compose run test
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    command: go test -race -count=1 -v ./...

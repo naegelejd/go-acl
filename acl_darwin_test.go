@@ -109,21 +109,7 @@ func TestEntryGIDQualifierRoundTrip(t *testing.T) {
 // TestSetGetACLRoundTrip writes a real NFSv4 ALLOW entry to a file and reads it
 // back, verifying the tag, qualifier, and permissions survive the round-trip.
 func TestSetGetACLRoundTrip(t *testing.T) {
-	f, err := os.Create(tmpfile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
-	defer func() {
-		// Clear the ACL before removing the file.
-		empty := New()
-		if empty != nil {
-			_ = empty.SetFileAccess(tmpfile)
-			empty.Free()
-		}
-		os.Remove(tmpfile)
-	}()
-
+	path := makeTmpFile(t)
 	uid := os.Getuid()
 
 	// Build an ACL with one ALLOW entry for the current user.
@@ -151,13 +137,13 @@ func TestSetGetACLRoundTrip(t *testing.T) {
 	if err := ps.AddPerm(PermWriteData); err != nil {
 		t.Fatal(err)
 	}
-	if err := acl.SetFileAccess(tmpfile); err != nil {
+	if err := acl.SetFileAccess(path); err != nil {
 		t.Fatal(err)
 	}
 	acl.Free()
 
 	// Read the ACL back.
-	got, err := GetFileAccess(tmpfile)
+	got, err := GetFileAccess(path)
 	if err != nil {
 		t.Fatal(err)
 	}
