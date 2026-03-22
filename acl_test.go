@@ -229,7 +229,7 @@ func TestACLSizeCopyExtInt(t *testing.T) {
 	if size <= 0 {
 		t.Skipf("acl_size returned %d; skipping CopyExt/CopyInt test", size)
 	}
-	buf := make([]byte, size)
+	buf := make([]byte, int(size))
 	n, err := acl.CopyExt(buf)
 	if err != nil {
 		t.Fatal(err)
