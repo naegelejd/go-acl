@@ -38,6 +38,7 @@ import "C"
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -222,7 +223,12 @@ func GetFileAccess(path string) (*ACL, error) {
 	cacl, err := C.acl_get_file(cpath, C.ACL_TYPE_EXTENDED)
 	if cacl == nil {
 		if err == syscall.ENOENT {
-			// No extended ACL on this file — return an empty ACL.
+			// ENOENT from acl_get_file may mean either the file has no extended
+			// ACL or the path does not exist at all. Use os.Stat to distinguish.
+			if _, statErr := os.Stat(path); statErr != nil {
+				return nil, statErr
+			}
+			// File exists but has no extended ACL — return an empty ACL.
 			return New(), nil
 		}
 		return nil, fmt.Errorf("unable to get ACL from file")

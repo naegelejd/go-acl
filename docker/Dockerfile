@@ -8,8 +8,8 @@
 # without a rebuild.
 #
 # Usage (via justfile):
-#   just docker-test     # run go test ./... inside the container
-#   just docker-shell    # open an interactive shell for exploration
+#   just docker test     # run go test ./... inside the container
+#   just docker shell    # open an interactive shell for exploration
 
 FROM golang:1.24-bookworm
 

@@ -17,10 +17,10 @@ macOS was previously unsupported. This release adds a complete NFSv4
 
 - **Tag types**: `TagExtendedAllow`, `TagExtendedDeny`
 - **Permission constants** (all 16 NFSv4 permissions): `PermReadData`,
-  `PermListDirectory`, `PermWriteData`, `PermAddFile`, `PermExecute` /
-  `PermSearch`, `PermDelete`, `PermAppendData`, `PermAddSubdirectory`,
+  `PermListDirectory`, `PermWriteData`, `PermAddFile`, `PermExecute`,
+  `PermDelete`, `PermAppendData`, `PermAddSubdirectory`,
   `PermDeleteChild`, `PermReadAttributes`, `PermWriteAttributes`,
-  `PermReadExtattributes`, `PermWriteExtattributes`, `PermReadSecurity`,
+  `PermReadExtAttributes`, `PermWriteExtAttributes`, `PermReadSecurity`,
   `PermWriteSecurity`, `PermChangeOwner`, `PermSynchronize`
 - **UUID qualifiers**: `SetQualifierUID`, `SetQualifierGID`, `GetQualifierID`
   (macOS ACL qualifiers are 16-byte UUIDs, not uid/gid integers)

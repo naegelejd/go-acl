@@ -31,10 +31,18 @@ go get github.com/naegelejd/go-acl
 
 ## Usage
 
+See also the [package documentation](https://pkg.go.dev/github.com/naegelejd/go-acl) for
+runnable examples.
+
 ### Linux (POSIX.1e)
 
 ```go
-import acl "github.com/naegelejd/go-acl"
+import (
+    "fmt"
+    "os"
+
+    acl "github.com/naegelejd/go-acl"
+)
 
 // Read the access ACL from a file.
 a, err := acl.GetFileAccess("/path/to/file")
@@ -45,10 +53,11 @@ defer a.Free()
 for e := a.FirstEntry(); e != nil; e = a.NextEntry() {
     tag, _ := e.GetTag()
     pset, _ := e.GetPermset()
-    fmt.Printf("tag=%d perms=%s\n", tag, pset)
+    fmt.Printf("tag=%v perms=%s\n", tag, pset)
 }
 
 // Add a named user entry.
+uid := os.Getuid() // or resolve a specific username
 entry, _ := a.CreateEntry()
 entry.SetTag(acl.TagUser)
 entry.SetQualifier(uid)
@@ -58,7 +67,7 @@ a.CalcMask()
 a.SetFileAccess("/path/to/file")
 
 // Create an ACL from Unix mode bits.
-a, _ = acl.FromMode(0644)
+a, _ = acl.FromMode(0o644)
 defer a.Free()
 
 // Check whether an ACL is equivalent to a plain Unix mode (no named entries).
@@ -68,7 +77,11 @@ mode, isEquiv, _ := a.EquivMode()
 ### macOS (NFSv4)
 
 ```go
-import acl "github.com/naegelejd/go-acl"
+import (
+    "os"
+
+    acl "github.com/naegelejd/go-acl"
+)
 
 // Grant the current user read and execute access.
 a, _ := acl.GetFileAccess("/path/to/file")
@@ -101,8 +114,6 @@ just docker cover            # coverage report in Linux Docker container
 just docker roundtrip-linux  # Linux ACL round-trip demo
 just docker-shell            # interactive Linux shell
 ```
-
-See [PLAN.md](PLAN.md) for outstanding work.
 
 ## License
 
