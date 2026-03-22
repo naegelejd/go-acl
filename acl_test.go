@@ -175,10 +175,9 @@ func TestEntryCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := e.SetTag(TagUndefined); err == nil {
-		// SetTag may fail on some platforms for TagUndefined; that's fine,
-		// we just need a valid entry to copy.
-	}
+	// SetTag with TagUndefined may fail on some platforms; ignore the result —
+	// we only need a valid entry handle to copy.
+	_ = e.SetTag(TagUndefined)
 
 	dst := New()
 	if dst == nil {
