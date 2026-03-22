@@ -233,16 +233,22 @@ func delACL(a *acl.ACL) ACLSetter {
 		if err != nil {
 			return err
 		}
+		defer x.Free()
 
 		// For each entry to delete, scan the file ACL for a matching entry
-		// (same tag and qualifier) and remove it.
+		// (same tag and qualifier) and remove it. Collect matches first to
+		// avoid mutating the ACL while iterating it.
 		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
+			var toDelete []*acl.Entry
 			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
 				if entriesMatch(delEntry, exEntry) {
-					if err := x.DeleteEntry(exEntry); err != nil {
-						return err
-					}
+					toDelete = append(toDelete, exEntry)
 					break
+				}
+			}
+			for _, e := range toDelete {
+				if err := x.DeleteEntry(e); err != nil {
+					return err
 				}
 			}
 		}

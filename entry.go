@@ -28,14 +28,18 @@ func (entry *Entry) SetPermset(pset *Permset) error {
 	return nil
 }
 
-// Copy copies an Entry.
-func (entry *Entry) Copy() (*Entry, error) {
-	var cdst C.acl_entry_t
-	rv, _ := C.acl_copy_entry(cdst, entry.e)
+// Copy copies the entry into dst, creating a new entry in that ACL and
+// returning it. This wraps acl_copy_entry(3).
+func (entry *Entry) Copy(dst *ACL) (*Entry, error) {
+	newEntry, err := dst.CreateEntry()
+	if err != nil {
+		return nil, err
+	}
+	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
 	if rv < 0 {
 		return nil, fmt.Errorf("unable to copy entry")
 	}
-	return &Entry{cdst}, nil
+	return newEntry, nil
 }
 
 // GetPermset returns the permission for an Entry.

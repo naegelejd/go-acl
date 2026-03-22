@@ -1,5 +1,23 @@
 # Copilot Instructions
 
+## Package purpose
+
+`go-acl` is a thin Go wrapper around the platform's native ACL C library:
+- **Linux / FreeBSD**: POSIX.1e ACL API from `libacl` / `libc`
+- **macOS**: NFSv4 ACL API from `libc` (`<sys/acl.h>`, `<membership.h>`)
+
+Every public C API function that is exposed by those libraries and is relevant
+to the supported ACL model should be wrapped and exported by this package.
+**All exported wrapper functions must be covered by at least one test.**
+Prefer `Example*` functions with `// Output:` comments where the output is
+deterministic; use `Test*` functions for behaviour that depends on the
+environment (temp files, OS-specific state, etc.).
+
+When adding a new wrapper:
+1. Write the Go function.
+2. Add a `Test*` or `Example*` that exercises it.
+3. If a `README.md` snippet describes that functionality, keep it in sync.
+
 ## File safety
 
 - Never modify a file unless the user has explicitly asked you to change it.

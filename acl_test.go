@@ -165,6 +165,39 @@ func TestACLAddEntry(t *testing.T) {
 	}
 }
 
+func TestEntryCopy(t *testing.T) {
+	src := New()
+	if src == nil {
+		t.Fatal("unable to create src ACL")
+	}
+	defer src.Free()
+	e, err := src.CreateEntry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.SetTag(TagUndefined); err == nil {
+		// SetTag may fail on some platforms for TagUndefined; that's fine,
+		// we just need a valid entry to copy.
+	}
+
+	dst := New()
+	if dst == nil {
+		t.Fatal("unable to create dst ACL")
+	}
+	defer dst.Free()
+
+	copied, err := e.Copy(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if copied == nil {
+		t.Fatal("expected non-nil copied entry")
+	}
+	if dst.FirstEntry() == nil {
+		t.Fatal("expected dst ACL to contain the copied entry")
+	}
+}
+
 func TestGetFileDefault(t *testing.T) {
 	acl, err := GetFileDefault(makeTmpDir(t))
 	if err != nil {

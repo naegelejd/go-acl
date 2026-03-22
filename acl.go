@@ -102,17 +102,10 @@ func (acl *ACL) CreateEntry() (*Entry, error) {
 	return &Entry{e}, nil
 }
 
-// AddEntry adds an Entry to the ACL.
+// AddEntry adds a copy of entry into the ACL.
 func (acl *ACL) AddEntry(entry *Entry) error {
-	newEntry, err := acl.CreateEntry()
-	if err != nil {
-		return err
-	}
-	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
-	if rv < 0 {
-		return fmt.Errorf("unable to copy entry while adding new entry")
-	}
-	return nil
+	_, err := entry.Copy(acl)
+	return err
 }
 
 // DeleteEntry removes a specific Entry from the ACL.

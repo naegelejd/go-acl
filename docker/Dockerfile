@@ -15,15 +15,15 @@ FROM golang:1.24-bookworm
 
 # Install libacl1-dev (required by '#cgo linux LDFLAGS: -lacl'), the
 # acl(1) CLI tools for manual inspection / round-trip testing, and
-# just (task runner) so container recipes match the host exactly.
+# just (task runner) and golangci-lint from the Debian package repositories
+# so the install is reproducible and does not depend on external scripts.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         libacl1-dev \
         acl \
- && rm -rf /var/lib/apt/lists/* \
- && curl -sSfL https://just.systems/install.sh | bash -s -- --to /usr/local/bin \
- && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    | sh -s -- -b /usr/local/bin latest
+        just \
+        golangci-lint \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
