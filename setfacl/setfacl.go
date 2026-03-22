@@ -241,7 +241,11 @@ func delACL(a *acl.ACL) ACLSetter {
 		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
 			var toDelete []*acl.Entry
 			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
-				if entriesMatch(delEntry, exEntry) {
+				match, err := entriesMatch(delEntry, exEntry)
+				if err != nil {
+					return err
+				}
+				if match {
 					toDelete = append(toDelete, exEntry)
 					break
 				}

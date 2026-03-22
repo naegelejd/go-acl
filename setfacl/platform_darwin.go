@@ -23,6 +23,9 @@ func calculateMask(a *acl.ACL) error {
 // because an empty ACL is valid and the three base entries do not exist.
 func clearExtendedEntries(path string) error {
 	empty := acl.New()
+	if empty == nil {
+		return fmt.Errorf("unable to create empty ACL")
+	}
 	defer empty.Free()
 	return empty.SetFileAccess(path)
 }
@@ -34,18 +37,27 @@ func clearDefaultACL(_ string) error {
 
 // entriesMatch reports whether two ACL entries have the same tag and qualifier.
 // Uses GetQualifierID to compare the (id, type) pair encoded in each UUID qualifier.
-func entriesMatch(a, b *acl.Entry) bool {
-	tagA, errA := a.GetTag()
-	tagB, errB := b.GetTag()
-	if errA != nil || errB != nil || tagA != tagB {
-		return false
+func entriesMatch(a, b *acl.Entry) (bool, error) {
+	tagA, err := a.GetTag()
+	if err != nil {
+		return false, err
 	}
-	idA, typeA, errA := a.GetQualifierID()
-	idB, typeB, errB := b.GetQualifierID()
-	if errA != nil || errB != nil {
-		return false
+	tagB, err := b.GetTag()
+	if err != nil {
+		return false, err
 	}
-	return idA == idB && typeA == typeB
+	if tagA != tagB {
+		return false, nil
+	}
+	idA, typeA, err := a.GetQualifierID()
+	if err != nil {
+		return false, err
+	}
+	idB, typeB, err := b.GetQualifierID()
+	if err != nil {
+		return false, err
+	}
+	return idA == idB && typeA == typeB, nil
 }
 
 // parseACLArg parses a Darwin NFSv4 ACL entry specification.

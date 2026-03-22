@@ -56,21 +56,30 @@ func clearDefaultACL(path string) error {
 // entriesMatch reports whether two entries have the same tag and uid/gid qualifier.
 // Tags that do not carry a qualifier (TagMask, TagUserObj, TagGroupObj, TagOther)
 // are matched by tag alone; qualifier comparison is only done for TagUser/TagGroup.
-func entriesMatch(a, b *acl.Entry) bool {
-	tagA, errA := a.GetTag()
-	tagB, errB := b.GetTag()
-	if errA != nil || errB != nil || tagA != tagB {
-		return false
+func entriesMatch(a, b *acl.Entry) (bool, error) {
+	tagA, err := a.GetTag()
+	if err != nil {
+		return false, err
+	}
+	tagB, err := b.GetTag()
+	if err != nil {
+		return false, err
+	}
+	if tagA != tagB {
+		return false, nil
 	}
 	if tagA != acl.TagUser && tagA != acl.TagGroup {
-		return true
+		return true, nil
 	}
-	qA, errA := a.GetQualifier()
-	qB, errB := b.GetQualifier()
-	if errA != nil || errB != nil {
-		return false
+	qA, err := a.GetQualifier()
+	if err != nil {
+		return false, err
 	}
-	return qA == qB
+	qB, err := b.GetQualifier()
+	if err != nil {
+		return false, err
+	}
+	return qA == qB, nil
 }
 
 // parseACLArg parses the POSIX.1e text representation of an ACL (e.g. "user:alice:rwx").
