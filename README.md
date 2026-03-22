@@ -39,14 +39,12 @@ runnable examples.
 ```go
 import (
     "fmt"
-    "os"
 
     acl "github.com/naegelejd/go-acl"
 )
 
-// Read the access ACL from a file.
-a, err := acl.GetFileAccess("/path/to/file")
-if err != nil { ... }
+// Create an ACL from Unix mode bits.
+a, _ := acl.FromMode(0o644)
 defer a.Free()
 
 // Iterate entries.
@@ -56,28 +54,20 @@ for e := a.FirstEntry(); e != nil; e = a.NextEntry() {
     fmt.Printf("tag=%v perms=%s\n", tag, pset)
 }
 
-// Add a named user entry.
-uid := os.Getuid() // or resolve a specific username
-entry, _ := a.CreateEntry()
-entry.SetTag(acl.TagUser)
-entry.SetQualifier(uid)
-pset, _ := entry.GetPermset()
-pset.AddPerm(acl.PermRead)
-a.CalcMask()
-a.SetFileAccess("/path/to/file")
-
-// Create an ACL from Unix mode bits.
-a, _ = acl.FromMode(0o644)
-defer a.Free()
-
 // Check whether an ACL is equivalent to a plain Unix mode (no named entries).
 mode, isEquiv, _ := a.EquivMode()
+_ = mode
+_ = isEquiv
 ```
+
+See the [package examples](https://pkg.go.dev/github.com/naegelejd/go-acl#pkg-examples) for
+a full read/modify/write workflow.
 
 ### macOS (NFSv4)
 
 ```go
 import (
+    "fmt"
     "os"
 
     acl "github.com/naegelejd/go-acl"
@@ -94,11 +84,10 @@ pset, _ := entry.GetPermset()
 pset.AddPerm(acl.PermReadData)
 pset.AddPerm(acl.PermExecute)
 a.SetFileAccess("/path/to/file")
-
-// Set an inheritance flag on a directory entry.
-fs, _ := entry.GetFlagset()
-fs.AddFlag(acl.FlagFileInherit)
 ```
+
+See the [package examples](https://pkg.go.dev/github.com/naegelejd/go-acl#pkg-examples) for
+a flagset/inheritance example.
 
 ## Development
 

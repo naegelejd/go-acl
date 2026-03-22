@@ -64,8 +64,9 @@ macOS was previously unsupported. This release adds a complete NFSv4
 
 ### Notes
 
-- **macOS**: `SetFileDefault`, `DeleteDefaultACL`, and `CalcMask` are no-ops —
-  default ACLs and the mask concept do not exist on macOS.
+- **macOS**: `SetFileDefault` is a no-op. `DeleteDefaultACL` and `CalcMask`
+  return errors — default ACLs and the POSIX.1e mask concept do not exist on
+  macOS.
 - **FreeBSD**: stubs are present and the module compiles, but FreeBSD ACL
   behavior has not been verified on a live system. Use with caution.
 

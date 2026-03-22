@@ -6,32 +6,29 @@ package acl_test
 
 import (
 	"fmt"
-	"os"
 
 	acl "github.com/naegelejd/go-acl"
 )
 
-// ExampleGetFileAccess demonstrates reading the access ACL from a file and
-// iterating over its entries.
+// ExampleGetFileAccess demonstrates iterating over entries in an ACL
+// constructed from Unix mode bits.
 func ExampleGetFileAccess() {
-	f, err := os.CreateTemp("", "go-acl-example-*")
-	if err != nil {
-		panic(err)
-	}
-	f.Close()
-	defer os.Remove(f.Name())
-
-	a, err := acl.GetFileAccess(f.Name())
+	// Use FromMode so the entry set is deterministic regardless of the
+	// host file system's umask or default ACL.
+	a, err := acl.FromMode(0o700)
 	if err != nil {
 		panic(err)
 	}
 	defer a.Free()
 
+	count := 0
 	for e := a.FirstEntry(); e != nil; e = a.NextEntry() {
-		tag, _ := e.GetTag()
-		pset, _ := e.GetPermset()
-		fmt.Printf("tag=%v perms=%s\n", tag, pset)
+		_ = e
+		count++
 	}
+	fmt.Printf("entry count: %d\n", count)
+	// Output:
+	// entry count: 3
 }
 
 // ExampleFromMode demonstrates creating a minimal ACL from Unix permission

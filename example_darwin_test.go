@@ -44,3 +44,28 @@ func ExampleACL_SetFileAccess() {
 	// Output:
 	// ACL applied successfully
 }
+
+// ExampleEntry_GetFlagset demonstrates adding an inheritance flag to an
+// NFSv4 ACL entry.
+func ExampleEntry_GetFlagset() {
+	a := acl.New()
+	defer a.Free()
+
+	entry, err := a.CreateEntry()
+	if err != nil {
+		panic(err)
+	}
+	entry.SetTag(acl.TagExtendedAllow)
+
+	fs, err := entry.GetFlagset()
+	if err != nil {
+		panic(err)
+	}
+	fs.AddFlag(acl.FlagFileInherit)
+
+	fmt.Println("has FlagFileInherit:", fs.HasFlag(acl.FlagFileInherit))
+	fmt.Println("has FlagDirectoryInherit:", fs.HasFlag(acl.FlagDirectoryInherit))
+	// Output:
+	// has FlagFileInherit: true
+	// has FlagDirectoryInherit: false
+}
