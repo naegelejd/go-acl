@@ -37,6 +37,7 @@ func (entry *Entry) Copy(dst *ACL) (*Entry, error) {
 	}
 	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
 	if rv < 0 {
+		C.acl_delete_entry(dst.a, newEntry.e)
 		return nil, fmt.Errorf("unable to copy entry")
 	}
 	return newEntry, nil

@@ -14,25 +14,31 @@ import (
 
 // SetQualifier sets the qualifier (uid or gid as int) for the entry.
 // On Linux and FreeBSD qualifiers are uid or gid integers.
+// Returns an error if the entry's tag does not carry a qualifier (i.e. is not
+// TagUser or TagGroup).
 func (entry *Entry) SetQualifier(id int) error {
 	tag, err := entry.GetTag()
 	if err != nil {
 		return err
 	}
-	if tag == TagGroup {
+	switch tag {
+	case TagGroup:
 		cid := C.gid_t(id)
 		rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&cid))
 		if rv < 0 {
 			return fmt.Errorf("unable to set qualifier")
 		}
 		return nil
+	case TagUser:
+		cid := C.uid_t(id)
+		rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&cid))
+		if rv < 0 {
+			return fmt.Errorf("unable to set qualifier")
+		}
+		return nil
+	default:
+		return fmt.Errorf("tag %v does not carry a qualifier", tag)
 	}
-	cid := C.uid_t(id)
-	rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&cid))
-	if rv < 0 {
-		return fmt.Errorf("unable to set qualifier")
-	}
-	return nil
 }
 
 // GetQualifier returns the qualifier (uid or gid as int) for the entry.

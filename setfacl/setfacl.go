@@ -289,16 +289,9 @@ func deleteAll(_ *acl.ACL) ACLSetter {
 	}
 }
 
-func deleteDefault(a *acl.ACL) ACLSetter {
+func deleteDefault(_ *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var err error
-		if err = calculateMask(a); err != nil {
-			return err
-		}
-		if err = a.SetFileDefault(p); err != nil {
-			return err
-		}
-		return nil
+		return clearDefaultACL(p)
 	}
 }
 
