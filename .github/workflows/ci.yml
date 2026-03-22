@@ -39,4 +39,4 @@ jobs:
         if: matrix.go == '1.24'
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.10
+          version: v2.11.3

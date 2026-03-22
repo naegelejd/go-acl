@@ -54,6 +54,14 @@ macOS was previously unsupported. This release adds a complete NFSv4
 - Go module (`go.mod`) declared at `go 1.22`
 - `//go:build` constraints throughout (Go 1.17+ style)
 
+### Changed
+
+- **`Entry.Copy` signature** *(breaking)*: The method signature changed from
+  `Copy() (*Entry, error)` to `Copy(dst *ACL) (*Entry, error)`. The destination
+  ACL is now required as a parameter so the method creates and returns a new
+  entry inside `dst` rather than requiring the caller to manage entry
+  allocation separately. Update call sites by passing the target `*ACL`.
+
 ### Fixed
 
 - **`setfacl -b` (Linux)**: the delete-all handler previously reconstructed the
