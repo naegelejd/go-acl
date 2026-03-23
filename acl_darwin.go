@@ -71,8 +71,8 @@ const (
 
 	// QualifierTypeUID and QualifierTypeGID match the macOS membership.h
 	// ID_TYPE_UID / ID_TYPE_GID values returned by GetQualifierID.
-	QualifierTypeUID = 0
-	QualifierTypeGID = 1
+	QualifierTypeUID = C.ID_TYPE_UID
+	QualifierTypeGID = C.ID_TYPE_GID
 
 	// Inheritance flag constants for macOS ACL entries.
 	FlagFileInherit      Flag = C.ACL_ENTRY_FILE_INHERIT
@@ -237,7 +237,11 @@ func GetFileAccess(path string) (*ACL, error) {
 }
 
 // GetFileDefault returns an empty ACL. Default ACLs are not supported on macOS.
+// Returns an error if the path does not exist.
 func GetFileDefault(path string) (*ACL, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
 	return New(), nil
 }
 

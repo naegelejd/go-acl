@@ -19,7 +19,7 @@ func calculateMask(a *acl.ACL) error {
 // clearExtendedEntries removes all named-user, named-group, and mask entries
 // from the access ACL of path, leaving only the three base entries
 // (TagUserObj, TagGroupObj, TagOther). Reading the existing ACL is essential
-// because Linux tamps the file mode's group bits with the current mask value,
+// because Linux stomps the file mode's group bits with the current mask value,
 // so reconstructing from mode bits would produce wrong group permissions.
 func clearExtendedEntries(path string) error {
 	x, err := acl.GetFileAccess(path)
