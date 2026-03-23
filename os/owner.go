@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package os
 
@@ -14,7 +14,10 @@ func Owner(fname string) (owner, group int, err error) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	// Close errors are intentionally ignored: Owner only reads file metadata
+	// via Stat; no writes are performed, so a close failure cannot affect the
+	// correctness of the returned values.
+	defer func() { _ = f.Close() }()
 
 	g := &File{*f}
 	return g.Owner()
@@ -31,7 +34,7 @@ func (f *File) Owner() (owner, group int, err error) {
 
 	sys, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
-		err = fmt.Errorf("could not stat file")
+		return 0, 0, fmt.Errorf("could not stat file")
 	}
 
 	return int(sys.Uid), int(sys.Gid), nil

@@ -1,11 +1,10 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package main
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -36,20 +35,20 @@ func main() {
 func getfacl(p string, recursive, header bool) error {
 	a, err := acl.GetFileAccess(p)
 	if err != nil {
-		return fmt.Errorf("Failed to get ACL from %s (%s)", p, err)
+		return fmt.Errorf("failed to get ACL from %s (%s)", p, err)
 	}
 
 	uid, gid, err := os2.Owner(p)
 	if err != nil {
-		return fmt.Errorf("Failed to lookup owner and group (%s)", err)
+		return fmt.Errorf("failed to look up owner and group (%s)", err)
 	}
 	user, err := user.LookupId(strconv.Itoa(int(uid)))
 	if err != nil {
-		return fmt.Errorf("Failed to lookup user (%s)", err)
+		return fmt.Errorf("failed to look up user (%s)", err)
 	}
 	group, err := group.LookupId(strconv.Itoa(int(gid)))
 	if err != nil {
-		return fmt.Errorf("Failed to lookup group (%s)", err)
+		return fmt.Errorf("failed to look up group (%s)", err)
 	}
 
 	if header {
@@ -71,10 +70,10 @@ func getfacl(p string, recursive, header bool) error {
 func recurse(p string, header bool) error {
 	fi, err := os.Stat(p)
 	if err != nil {
-		return fmt.Errorf("Failed to stat path %s (%s)", p, err)
+		return fmt.Errorf("failed to stat path %s (%s)", p, err)
 	}
 	if fi.IsDir() {
-		dirents, err := ioutil.ReadDir(p)
+		dirents, err := os.ReadDir(p)
 		if err != nil {
 			return err
 		}

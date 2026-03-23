@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI (${{ matrix.os }}, Go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        go: ["1.22", "1.23", "1.24"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install libacl (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libacl1-dev
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -count=1 ./...
+
+      - name: Lint
+        if: matrix.go == '1.24'
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.11.3

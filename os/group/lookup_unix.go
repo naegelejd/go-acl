@@ -4,8 +4,7 @@
 // license that can be found in the LICENSE file.
 // - Joseph Naegele 2015
 
-// +build darwin dragonfly freebsd !android,linux netbsd openbsd solaris
-// +build cgo
+//go:build (darwin || dragonfly || freebsd || (!android && linux) || netbsd || openbsd || solaris) && cgo
 
 package group
 

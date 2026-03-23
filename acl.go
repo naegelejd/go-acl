@@ -1,19 +1,20 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
-// Package acl provides an interface to Posix.1e Access Control Lists
-// as well as additional ACL implementations (NFS).
+// Package acl provides POSIX.1e ACL bindings for Linux and FreeBSD, and
+// NFSv4 (extended) ACL bindings for macOS via the system acl(3) library.
 package acl
 
 // #ifdef __APPLE__
 //  #include <sys/types.h>
 // #endif
+// #include <stdlib.h>
 // #include <sys/acl.h>
 // #cgo linux LDFLAGS: -lacl
 //
 // /*
-//  * FreeBSD does not contain acl_size and even when it was there, it seemd
+//  * FreeBSD does not contain acl_size and even when it was there, it seemed
 //  * to have been non-functional anyway. See FreeBSD r274722.
-//  */ 
+//  */
 // #ifdef __FreeBSD__
 // #include <errno.h>
 // # endif
@@ -23,6 +24,25 @@ package acl
 //     return (-1);
 // #else
 //     return acl_size(acl);
+// #endif
+// }
+//
+// /*
+//  * Normalize acl_get_entry return values to POSIX semantics:
+//  *   1  = entry returned
+//  *   0  = end of list (or error — caller stops iteration either way)
+//  *  -1  = hard error (unused here; treated as 0 for simplicity)
+//  *
+//  * macOS deviates from POSIX: it returns 0 on success and -1 when the
+//  * list is exhausted (errno=EINVAL). Linux and FreeBSD already follow
+//  * POSIX (1 = found, 0 = end).
+//  */
+// static int acl_get_entry_posix(acl_t acl, int eid, acl_entry_t *ep) {
+//     int rv = acl_get_entry(acl, eid, ep);
+// #ifdef __APPLE__
+//     return (rv == 0) ? 1 : 0;
+// #else
+//     return rv;
 // #endif
 // }
 import "C"
@@ -56,25 +76,6 @@ type ACL struct {
 	a C.acl_t
 }
 
-// DeleteDefaultACL removes the default ACL from the specified path.
-// Unsupported on Mac OS X.
-func DeleteDefaultACL(path string) error {
-	rv, _ := C.acl_delete_def_file(C.CString(path))
-	if rv < 0 {
-		return fmt.Errorf("unable to delete default ACL from file")
-	}
-	return nil
-}
-
-// Unsupported on Mac OS X?
-func (acl *ACL) CalcMask() error {
-	rv, _ := C.acl_calc_mask(&acl.a)
-	if rv < 0 {
-		return fmt.Errorf("unable to calculate mask")
-	}
-	return nil
-}
-
 // String returns the string representation of the ACL.
 func (acl *ACL) String() string {
 	cs, _ := C.acl_to_text(acl.a, nil)
@@ -88,10 +89,7 @@ func (acl *ACL) String() string {
 // Valid checks if the ACL is valid.
 func (acl *ACL) Valid() bool {
 	rv := C.acl_valid(acl.a)
-	if rv < 0 {
-		return false
-	}
-	return true
+	return rv >= 0
 }
 
 // CreateEntry creates a new, empty Entry in the ACL.
@@ -104,17 +102,10 @@ func (acl *ACL) CreateEntry() (*Entry, error) {
 	return &Entry{e}, nil
 }
 
-// AddEntry adds an Entry to the ACL.
+// AddEntry adds a copy of entry into the ACL.
 func (acl *ACL) AddEntry(entry *Entry) error {
-	newEntry, err := acl.CreateEntry()
-	if err != nil {
-		return err
-	}
-	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
-	if rv < 0 {
-		return fmt.Errorf("unable to copy entry while adding new entry")
-	}
-	return nil
+	_, err := entry.Copy(acl)
+	return err
 }
 
 // DeleteEntry removes a specific Entry from the ACL.
@@ -139,61 +130,31 @@ func (acl *ACL) Dup() (*ACL, error) {
 func New() *ACL {
 	cacl, _ := C.acl_init(C.int(1))
 	if cacl == nil {
-		// If acl_init fails, *ACL is invalid
 		return nil
 	}
 	return &ACL{cacl}
 }
 
 // FirstEntry returns the first entry in the ACL,
-// or nil of there are no more entries.
+// or nil if there are no entries.
 func (acl *ACL) FirstEntry() *Entry {
 	var e C.acl_entry_t
-	rv, _ := C.acl_get_entry(acl.a, C.ACL_FIRST_ENTRY, &e)
+	rv := C.acl_get_entry_posix(acl.a, C.ACL_FIRST_ENTRY, &e)
 	if rv <= 0 {
-		// either error obtaining entry or entries at all
 		return nil
 	}
 	return &Entry{e}
 }
 
 // NextEntry returns the next entry in the ACL,
-// or nil of there are no more entries.
+// or nil if there are no more entries.
 func (acl *ACL) NextEntry() *Entry {
 	var e C.acl_entry_t
-	rv, _ := C.acl_get_entry(acl.a, C.ACL_NEXT_ENTRY, &e)
+	rv := C.acl_get_entry_posix(acl.a, C.ACL_NEXT_ENTRY, &e)
 	if rv <= 0 {
-		// either error obtaining entry or no more entries
 		return nil
 	}
 	return &Entry{e}
-}
-
-func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
-	if !acl.Valid() {
-		if err := acl.addBaseEntries(path); err != nil {
-			return err
-		}
-		if !acl.Valid() {
-			return fmt.Errorf("Invalid ACL: %s", acl)
-		}
-	}
-
-	rv, _ := C.acl_set_file(C.CString(path), tp, acl.a)
-	if rv < 0 {
-		return fmt.Errorf("unable to apply ACL to file")
-	}
-	return nil
-}
-
-// SetFileAccess applies the access ACL to a file.
-func (acl *ACL) SetFileAccess(path string) error {
-	return acl.setFile(path, C.ACL_TYPE_ACCESS)
-}
-
-// SetFileDefault applies the default ACL to a file.
-func (acl *ACL) SetFileDefault(path string) error {
-	return acl.setFile(path, C.ACL_TYPE_DEFAULT)
 }
 
 // Free releases the memory used by the ACL.
@@ -201,32 +162,15 @@ func (acl *ACL) Free() {
 	C.acl_free(unsafe.Pointer(acl.a))
 }
 
-// Parse constructs and ACL from a string representation.
+// Parse constructs an ACL from a string representation.
 func Parse(s string) (*ACL, error) {
 	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
 	cacl, _ := C.acl_from_text(cs)
 	if cacl == nil {
 		return nil, fmt.Errorf("unable to parse ACL")
 	}
 	return &ACL{cacl}, nil
-}
-
-func getFile(path string, tp C.acl_type_t) (*ACL, error) {
-	cacl, _ := C.acl_get_file(C.CString(path), tp)
-	if cacl == nil {
-		return nil, fmt.Errorf("unable to get ACL from file")
-	}
-	return &ACL{cacl}, nil
-}
-
-// GetFileAccess returns the access ACL associated with the given file path.
-func GetFileAccess(path string) (*ACL, error) {
-	return getFile(path, C.ACL_TYPE_ACCESS)
-}
-
-// GetFileDefault returns the default ACL associated with the given file path.
-func GetFileDefault(path string) (*ACL, error) {
-	return getFile(path, C.ACL_TYPE_DEFAULT)
 }
 
 func (acl *ACL) Size() int64 {

@@ -1,9 +1,8 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package os
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -12,7 +11,7 @@ func TestOwner(t *testing.T) {
 	uid := os.Getuid()
 	gid := os.Getgid()
 
-	f, err := ioutil.TempFile("./", "")
+	f, err := os.CreateTemp("./", "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -33,7 +32,7 @@ func TestOwner(t *testing.T) {
 	if err := f.Close(); err != nil {
 		t.Error(err)
 	}
-	if err != os.Remove(name) {
+	if err := os.Remove(name); err != nil {
 		t.Error(err)
 	}
 }

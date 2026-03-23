@@ -1,0 +1,19 @@
+# Shared build + mount configuration, referenced by every service below.
+x-base: &base
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  volumes:
+    - ..:/workspace
+  working_dir: /workspace
+
+services:
+  # dev: interactive shell with the repo mounted. Use: just docker-shell
+  dev:
+    <<: *base
+
+  # runner: runs an arbitrary just recipe passed via RECIPE env var.
+  # All docker-* justfile recipes use this service.
+  runner:
+    <<: *base
+    command: ["just", "${RECIPE}"]

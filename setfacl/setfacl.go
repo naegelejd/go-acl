@@ -1,11 +1,10 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package main
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -69,15 +68,6 @@ var (
 	ignoreLinks  bool
 	calcMask     bool
 	applyDefault bool
-	dryRun       bool
-)
-
-type Mode int
-
-const (
-	setMode int = iota
-	modMode
-	delMode
 )
 
 type ACLSetter func(p string) error
@@ -154,7 +144,7 @@ func main() {
 			log.Fatal("Invalid mode. Contact author")
 		}
 		var err error
-		a, err = acl.Parse(source)
+		a, err = parseACLArg(source)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -179,15 +169,6 @@ func countModes(modes ...bool) int {
 		}
 	}
 	return count
-}
-
-func calculateMask(a *acl.ACL) error {
-	if calcMask {
-		if err := a.CalcMask(); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func setACL(a *acl.ACL) ACLSetter {
@@ -252,32 +233,26 @@ func delACL(a *acl.ACL) ACLSetter {
 		if err != nil {
 			return err
 		}
+		defer x.Free()
 
-		// TODO: remove existing ACL matching specified ACL
-		// for each entry in a, for each entry in x, if tag and qualifier match, remove from x
+		// For each entry to delete, scan the file ACL for all matching entries
+		// (same tag and qualifier) and remove them. On macOS NFSv4 ACLs multiple
+		// ACEs for the same principal can exist, so all matches must be removed.
+		// Collect first to avoid mutating the ACL while iterating it.
 		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
-			delTag, err := delEntry.GetTag()
-			if err != nil {
-				continue
-				return err
-			}
-			delQual, err := delEntry.GetQualifier()
-			if err != nil {
-				continue
-			}
+			var toDelete []*acl.Entry
 			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
-				exTag, err := exEntry.GetTag()
+				ok, err := entriesMatch(delEntry, exEntry)
 				if err != nil {
-					continue
+					return err
 				}
-				exQual, err := exEntry.GetQualifier()
-				if err != nil {
-					continue
+				if ok {
+					toDelete = append(toDelete, exEntry)
 				}
-				if delTag == exTag && delQual == exQual {
-					if err := x.DeleteEntry(delEntry); err != nil {
-						return err
-					}
+			}
+			for _, e := range toDelete {
+				if err := x.DeleteEntry(e); err != nil {
+					return err
 				}
 			}
 		}
@@ -294,32 +269,29 @@ func delACL(a *acl.ACL) ACLSetter {
 	}
 }
 
-func deleteAll(a *acl.ACL) ACLSetter {
+func deleteAll(_ *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var err error
-		if err = calculateMask(a); err != nil {
+		// Strip all named-user, named-group, and mask entries from the access
+		// ACL, leaving only the three POSIX base entries. On Darwin this sets
+		// an empty ACL (no base entries exist in the NFSv4 model).
+		if err := clearExtendedEntries(p); err != nil {
 			return err
 		}
-		if err = a.SetFileAccess(p); err != nil {
+		// Default ACLs only exist on directories.
+		fi, err := os.Stat(p)
+		if err != nil {
 			return err
 		}
-		if err = a.SetFileDefault(p); err != nil {
-			return err
+		if fi.IsDir() {
+			return clearDefaultACL(p)
 		}
 		return nil
 	}
 }
 
-func deleteDefault(a *acl.ACL) ACLSetter {
+func deleteDefault(_ *acl.ACL) ACLSetter {
 	return func(p string) error {
-		var err error
-		if err = calculateMask(a); err != nil {
-			return err
-		}
-		if err = a.SetFileDefault(p); err != nil {
-			return err
-		}
-		return nil
+		return clearDefaultACL(p)
 	}
 }
 
@@ -354,13 +326,12 @@ func apply(f ACLSetter, p string) error {
 		return err
 	}
 	if fi.IsDir() && recursive {
-		dirents, err := ioutil.ReadDir(p)
+		dirents, err := os.ReadDir(p)
 		if err != nil {
 			return err
 		}
 		for _, child := range dirents {
-			p = filepath.Join(p, child.Name())
-			if err := apply(f, p); err != nil {
+			if err := apply(f, filepath.Join(p, child.Name())); err != nil {
 				return err
 			}
 		}

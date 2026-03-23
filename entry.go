@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Joseph Naegele. See LICENSE file.
+// Copyright (c) 2026 Joseph Naegele. See LICENSE file.
 
 package acl
 
@@ -8,10 +8,7 @@ package acl
 // #include <sys/acl.h>
 // #cgo linux LDFLAGS: -lacl
 import "C"
-import (
-	"fmt"
-	"unsafe"
-)
+import "fmt"
 
 const (
 	TagUndefined Tag = C.ACL_UNDEFINED_TAG
@@ -31,32 +28,19 @@ func (entry *Entry) SetPermset(pset *Permset) error {
 	return nil
 }
 
-// Copy copies an Entry.
-func (entry *Entry) Copy() (*Entry, error) {
-	var cdst C.acl_entry_t
-	rv, _ := C.acl_copy_entry(cdst, entry.e)
+// Copy copies the entry into dst, creating a new entry in that ACL and
+// returning it. This wraps acl_copy_entry(3).
+func (entry *Entry) Copy(dst *ACL) (*Entry, error) {
+	newEntry, err := dst.CreateEntry()
+	if err != nil {
+		return nil, err
+	}
+	rv, _ := C.acl_copy_entry(newEntry.e, entry.e)
 	if rv < 0 {
+		C.acl_delete_entry(dst.a, newEntry.e)
 		return nil, fmt.Errorf("unable to copy entry")
 	}
-	return &Entry{cdst}, nil
-}
-
-// SetQualifier sets the Uid or Gid the entry applies to.
-func (entry *Entry) SetQualifier(id int) error {
-	rv, _ := C.acl_set_qualifier(entry.e, unsafe.Pointer(&id))
-	if rv < 0 {
-		return fmt.Errorf("unable to set qualifier")
-	}
-	return nil
-}
-
-// GetQualifier returns the Uid or Gid the entry applies to.
-func (entry *Entry) GetQualifier() (int, error) {
-	q := C.acl_get_qualifier(entry.e)
-        if q == nil {   
-                return -1, fmt.Errorf("unable to get qualifier")
-        }
-        return *(*int)(q), nil
+	return newEntry, nil
 }
 
 // GetPermset returns the permission for an Entry.
