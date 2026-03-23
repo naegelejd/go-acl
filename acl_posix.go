@@ -21,8 +21,8 @@ import (
 // the caller already holds an open file descriptor.
 func GetFd(f *os.File) (*ACL, error) {
 	fd := C.int(f.Fd())
-	runtime.KeepAlive(f)
 	cacl, _ := C.acl_get_fd(fd)
+	runtime.KeepAlive(f)
 	if cacl == nil {
 		return nil, fmt.Errorf("unable to get ACL from fd")
 	}
@@ -34,8 +34,8 @@ func GetFd(f *os.File) (*ACL, error) {
 // the caller already holds an open file descriptor.
 func (acl *ACL) SetFd(f *os.File) error {
 	fd := C.int(f.Fd())
-	runtime.KeepAlive(f)
 	rv, _ := C.acl_set_fd(fd, acl.a)
+	runtime.KeepAlive(f)
 	if rv < 0 {
 		return fmt.Errorf("unable to set ACL on fd")
 	}
