@@ -83,6 +83,17 @@ update the year in the header to the current year if it differs.
   when converting uid/gid strings (a silently-zero uid grants root-level ACL
   entries).
 
+## Reviewing PR feedback
+
+When processing review comments:
+1. **Validate first** — verify that the comment is factually correct before acting
+   on it. Check the actual code, compiler behaviour, library docs, or runtime
+   environment as needed. Wrong feedback should be skipped and the reason noted.
+2. **Read the full comment** — do not act on only the code suggestion while
+   ignoring the prose. Comments often offer two options ("fix it *or* document
+   why it is safe to leave as-is"); honour whichever option applies rather than
+   treating the suggestion block as the only valid response.
+
 ## Recursive directory traversal
 
 - Never mutate the loop's parent-path variable inside an iteration over

@@ -14,6 +14,9 @@ func Owner(fname string) (owner, group int, err error) {
 	if err != nil {
 		return
 	}
+	// Close errors are intentionally ignored: Owner only reads file metadata
+	// via Stat; no writes are performed, so a close failure cannot affect the
+	// correctness of the returned values.
 	defer func() { _ = f.Close() }()
 
 	g := &File{*f}
