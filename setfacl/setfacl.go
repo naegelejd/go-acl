@@ -235,25 +235,23 @@ func delACL(a *acl.ACL) ACLSetter {
 		}
 		defer x.Free()
 
-		// For each entry to delete, scan the file ACL for a matching entry
-		// (same tag and qualifier) and remove it. Because ACL entries are
-		// unique by tag+qualifier, at most one match exists per delEntry.
-		// Collect the match before deleting to avoid mutating the ACL while
-		// iterating it.
+		// For each entry to delete, scan the file ACL for all matching entries
+		// (same tag and qualifier) and remove them. On macOS NFSv4 ACLs multiple
+		// ACEs for the same principal can exist, so all matches must be removed.
+		// Collect first to avoid mutating the ACL while iterating it.
 		for delEntry := a.FirstEntry(); delEntry != nil; delEntry = a.NextEntry() {
-			var match *acl.Entry
+			var toDelete []*acl.Entry
 			for exEntry := x.FirstEntry(); exEntry != nil; exEntry = x.NextEntry() {
 				ok, err := entriesMatch(delEntry, exEntry)
 				if err != nil {
 					return err
 				}
 				if ok {
-					match = exEntry
-					break
+					toDelete = append(toDelete, exEntry)
 				}
 			}
-			if match != nil {
-				if err := x.DeleteEntry(match); err != nil {
+			for _, e := range toDelete {
+				if err := x.DeleteEntry(e); err != nil {
 					return err
 				}
 			}
