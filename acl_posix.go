@@ -21,10 +21,10 @@ import (
 // the caller already holds an open file descriptor.
 func GetFd(f *os.File) (*ACL, error) {
 	fd := C.int(f.Fd())
-	cacl, _ := C.acl_get_fd(fd)
+	cacl, err := C.acl_get_fd(fd)
 	runtime.KeepAlive(f)
 	if cacl == nil {
-		return nil, fmt.Errorf("unable to get ACL from fd")
+		return nil, fmt.Errorf("unable to get ACL from fd: %w", cgoErrno(err))
 	}
 	return &ACL{cacl}, nil
 }
@@ -34,10 +34,10 @@ func GetFd(f *os.File) (*ACL, error) {
 // the caller already holds an open file descriptor.
 func (acl *ACL) SetFd(f *os.File) error {
 	fd := C.int(f.Fd())
-	rv, _ := C.acl_set_fd(fd, acl.a)
+	rv, err := C.acl_set_fd(fd, acl.a)
 	runtime.KeepAlive(f)
 	if rv < 0 {
-		return fmt.Errorf("unable to set ACL on fd")
+		return fmt.Errorf("unable to set ACL on fd: %w", cgoErrno(err))
 	}
 	return nil
 }
@@ -46,18 +46,18 @@ func (acl *ACL) SetFd(f *os.File) error {
 func DeleteDefaultACL(path string) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	rv, _ := C.acl_delete_def_file(cpath)
+	rv, err := C.acl_delete_def_file(cpath)
 	if rv < 0 {
-		return fmt.Errorf("unable to delete default ACL from file")
+		return fmt.Errorf("unable to delete default ACL from file: %w", cgoErrno(err))
 	}
 	return nil
 }
 
 // CalcMask recalculates the effective rights mask for the ACL.
 func (acl *ACL) CalcMask() error {
-	rv, _ := C.acl_calc_mask(&acl.a)
+	rv, err := C.acl_calc_mask(&acl.a)
 	if rv < 0 {
-		return fmt.Errorf("unable to calculate mask")
+		return fmt.Errorf("unable to calculate mask: %w", cgoErrno(err))
 	}
 	return nil
 }
@@ -73,9 +73,9 @@ func (acl *ACL) setFile(path string, tp C.acl_type_t) error {
 	}
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	rv, _ := C.acl_set_file(cpath, tp, acl.a)
+	rv, err := C.acl_set_file(cpath, tp, acl.a)
 	if rv < 0 {
-		return fmt.Errorf("unable to apply ACL to file")
+		return fmt.Errorf("unable to apply ACL to file: %w", cgoErrno(err))
 	}
 	return nil
 }
@@ -93,9 +93,9 @@ func (acl *ACL) SetFileDefault(path string) error {
 func getFile(path string, tp C.acl_type_t) (*ACL, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	cacl, _ := C.acl_get_file(cpath, tp)
+	cacl, err := C.acl_get_file(cpath, tp)
 	if cacl == nil {
-		return nil, fmt.Errorf("unable to get ACL from file")
+		return nil, fmt.Errorf("unable to get ACL from file: %w", cgoErrno(err))
 	}
 	return &ACL{cacl}, nil
 }
