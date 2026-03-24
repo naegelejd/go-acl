@@ -87,7 +87,7 @@ func (acl *ACL) String() string {
 	return C.GoString(cs)
 }
 
-// errno extracts the syscall.Errno from the error value returned by a CGo
+// cgoErrno extracts the syscall.Errno from the error value returned by a CGo
 // call, or returns 0 if the assertion fails (which should not happen).
 func cgoErrno(err error) syscall.Errno {
 	if err == nil {

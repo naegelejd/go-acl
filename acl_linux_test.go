@@ -518,7 +518,7 @@ func TestStringWithOptions(t *testing.T) {
 		t.Fatal("StringWithOptions(TextNumericIDs) returned empty string")
 	}
 
-	// Zero flags: also valid; should match the default String() output.
+	// Zero flags is a valid call and should return non-empty output.
 	s0 := acl.StringWithOptions(0)
 	if s0 == "" {
 		t.Fatal("StringWithOptions(0) returned empty string")
