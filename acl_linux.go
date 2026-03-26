@@ -2,6 +2,7 @@
 
 package acl
 
+// #include <stdlib.h>
 // #include <sys/acl.h>
 // #include <acl/libacl.h>
 // #cgo linux LDFLAGS: -lacl
@@ -9,9 +10,16 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"unsafe"
 )
 
 const (
+	// TextSomeEffective and TextNumericIDs are flags for StringWithOptions.
+	// They correspond to the TEXT_SOME_EFFECTIVE and TEXT_NUMERIC_IDS constants
+	// from <acl/libacl.h> (Linux / libacl only).
+	TextSomeEffective = int(C.TEXT_SOME_EFFECTIVE)
+	TextNumericIDs    = int(C.TEXT_NUMERIC_IDS)
+
 	TagUserObj  Tag = C.ACL_USER_OBJ
 	TagUser     Tag = C.ACL_USER
 	TagGroupObj Tag = C.ACL_GROUP_OBJ
@@ -26,11 +34,24 @@ const (
 // FromMode creates a minimal three-entry ACL (user, group, other) equivalent
 // to the given Unix permission bits, using acl_from_mode(3).
 func FromMode(mode os.FileMode) (*ACL, error) {
-	cacl, _ := C.acl_from_mode(C.mode_t(mode.Perm()))
+	cacl, err := C.acl_from_mode(C.mode_t(mode.Perm()))
 	if cacl == nil {
-		return nil, fmt.Errorf("acl_from_mode failed")
+		return nil, fmt.Errorf("acl_from_mode failed: %w", cgoErrno(err))
 	}
 	return &ACL{cacl}, nil
+}
+
+// StringWithOptions returns the text representation of the ACL, formatted
+// according to the provided option flags. Valid flags are TextSomeEffective
+// and TextNumericIDs (or a bitwise OR of both). This wraps acl_to_any_text(3)
+// from libacl, which is a Linux-only extension.
+func (acl *ACL) StringWithOptions(options int) string {
+	cs, _ := C.acl_to_any_text(acl.a, nil, '\n', C.int(options))
+	if cs == nil {
+		return ""
+	}
+	defer C.acl_free(unsafe.Pointer(cs))
+	return C.GoString(cs)
 }
 
 // EquivMode reports whether the ACL is equivalent to a simple Unix mode
@@ -39,9 +60,9 @@ func FromMode(mode os.FileMode) (*ACL, error) {
 // entries, the zero mode and false are returned.
 func (acl *ACL) EquivMode() (os.FileMode, bool, error) {
 	var mode C.mode_t
-	rv, _ := C.acl_equiv_mode(acl.a, &mode)
+	rv, err := C.acl_equiv_mode(acl.a, &mode)
 	if rv < 0 {
-		return 0, false, fmt.Errorf("acl_equiv_mode failed")
+		return 0, false, fmt.Errorf("acl_equiv_mode failed: %w", cgoErrno(err))
 	}
 	return os.FileMode(mode), rv == 0, nil
 }

@@ -498,3 +498,29 @@ func TestEquivMode(t *testing.T) {
 		t.Fatal("expected ACL with named user entry to NOT be equivalent to a Unix mode")
 	}
 }
+
+func TestStringWithOptions(t *testing.T) {
+	acl, err := FromMode(0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer acl.Free()
+
+	// TextSomeEffective: output should be non-empty.
+	s := acl.StringWithOptions(TextSomeEffective)
+	if s == "" {
+		t.Fatal("StringWithOptions(TextSomeEffective) returned empty string")
+	}
+
+	// TextNumericIDs: output should also be non-empty.
+	s = acl.StringWithOptions(TextNumericIDs)
+	if s == "" {
+		t.Fatal("StringWithOptions(TextNumericIDs) returned empty string")
+	}
+
+	// Zero flags is a valid call and should return non-empty output.
+	s0 := acl.StringWithOptions(0)
+	if s0 == "" {
+		t.Fatal("StringWithOptions(0) returned empty string")
+	}
+}
